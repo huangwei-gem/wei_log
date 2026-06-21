@@ -107,8 +107,12 @@ function Hero() {
 
 function WorkCard({ project }) {
   const videoRef = useRef(null)
+  const handleClick = () => {
+    const url = project.type === 'video' ? project.video : project.img
+    if (url) window.open(url, '_blank')
+  }
   return (
-    <div className="work-card"
+    <div className="work-card" onClick={handleClick}
       onMouseEnter={() => videoRef.current?.play()}
       onMouseLeave={() => { if (videoRef.current) { videoRef.current.pause(); videoRef.current.currentTime = 0 } }}>
       <div className="work-thumb">
