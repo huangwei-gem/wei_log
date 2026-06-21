@@ -2,12 +2,34 @@
 
 // ========= 数据 =========
 const projects = [
-  { title: 'Brand Identity', desc: '品牌视觉识别系统设计', cat: 'brand', type: 'image', img: 'https://picsum.photos/seed/work1/600/400' },
-  { title: 'Motion Reel 2025', desc: '动态设计作品合集', cat: 'motion', type: 'video', img: 'https://picsum.photos/seed/work2/600/400', video: 'https://www.w3schools.com/html/mov_bbb.mp4' },
-  { title: 'Travel App UI', desc: '旅行应用界面设计', cat: 'uiux', type: 'image', img: 'https://picsum.photos/seed/work3/600/400' },
-  { title: 'Digital Illustration', desc: '数字插画系列', cat: 'art', type: 'image', img: 'https://picsum.photos/seed/work4/600/400' },
-  { title: 'Packaging Design', desc: '产品包装设计', cat: 'brand', type: 'image', img: 'https://picsum.photos/seed/work5/600/400' },
-  { title: 'Animation Showcase', desc: '动画作品展示', cat: 'motion', type: 'video', img: 'https://picsum.photos/seed/work6/600/400', video: 'https://www.w3schools.com/html/mov_bbb.mp4' },
+  // AI 短剧
+  { title: '故事板', desc: 'AI 短剧故事板设计', cat: 'ai-drama', type: 'image', img: '/portfolios/AI短剧/故事板.jpg' },
+  { title: '女角色 1', desc: 'AI 短剧角色设计', cat: 'ai-drama', type: 'image', img: '/portfolios/AI短剧/女1_merge.png' },
+  { title: '女角色 2', desc: 'AI 短剧角色设计', cat: 'ai-drama', type: 'image', img: '/portfolios/AI短剧/女2_merge.png' },
+  { title: '女角色 3', desc: 'AI 短剧角色设计', cat: 'ai-drama', type: 'image', img: '/portfolios/AI短剧/女3_merge.png' },
+  { title: '男角色 1', desc: 'AI 短剧角色设计', cat: 'ai-drama', type: 'image', img: '/portfolios/AI短剧/男1_merge.png' },
+  { title: '男角色 2', desc: 'AI 短剧角色设计', cat: 'ai-drama', type: 'image', img: '/portfolios/AI短剧/男2_merge.png' },
+  { title: '男角色 3', desc: 'AI 短剧角色设计', cat: 'ai-drama', type: 'image', img: '/portfolios/AI短剧/男3_merge.png' },
+
+  // AI 视频作品集
+  { title: '40s 微笑', desc: 'AI 视频短片', cat: 'ai-video', type: 'video', img: '/portfolios/AI视频作品集/40s微笑.mp4', video: '/portfolios/AI视频作品集/40s微笑.mp4' },
+  { title: '意外的重逢', desc: 'AI 视频作品（文件较大，暂未上传）', cat: 'ai-video', type: 'placeholder', img: '' },
+
+  // 电商
+  { title: '商品主图一键生成', desc: 'AI 电商商品主图设计', cat: 'ecommerce', type: 'image', img: '/portfolios/电商/商品主图一键生成.png' },
+  { title: '电商详情页', desc: '电商产品详情页设计', cat: 'ecommerce', type: 'image', img: '/portfolios/电商/电商详情页.png' },
+
+  // 生活
+  { title: '人物剪影', desc: '生活摄影 - 人物剪影', cat: 'life', type: 'image', img: '/portfolios/生活/人物剪影.jpg' },
+  { title: '朋友圈照片', desc: '生活摄影记录', cat: 'life', type: 'image', img: '/portfolios/生活/朋友圈照片.png' },
+]
+
+const filterCategories = [
+  { key: 'all', label: 'All' },
+  { key: 'ai-drama', label: 'AI短剧' },
+  { key: 'ai-video', label: 'AI视频' },
+  { key: 'ecommerce', label: '电商' },
+  { key: 'life', label: '生活' },
 ]
 
 // ========= 组件 =========
@@ -92,11 +114,16 @@ function WorkCard({ project }) {
       <div className="work-thumb">
         {project.type === 'video' ? (
           <>
-            <video ref={videoRef} muted loop playsInline preload="metadata" poster={project.img}>
+            <video ref={videoRef} muted loop playsInline preload="metadata" poster={project.img || undefined}>
               <source src={project.video} type="video/mp4" />
             </video>
             <div className="play-badge">🎬</div>
           </>
+        ) : project.type === 'placeholder' ? (
+          <div className="work-thumb-placeholder">
+            <span className="placeholder-icon">🎥</span>
+            <p className="placeholder-text">视频较大，暂未上传</p>
+          </div>
         ) : (
           <img src={project.img} alt={project.title} loading="lazy" />
         )}
@@ -127,15 +154,15 @@ function Works() {
   const filtered = filter === 'all' ? projects : projects.filter(p => p.cat === filter)
 
   return (
-    <section id="works" ref={ref}>
+    <section id="works">
       <div className="container">
         <div className="section-header">
-          <p className="section-label">PORTFOLIO</p>
-          <h2>Featured Works</h2>
-          <p className="section-desc">精选设计作品</p>
+          <p className="section-label">WORKS</p>
+          <h2>My Portfolio</h2>
+          <p className="section-desc">我的精选作品集</p>
         </div>
         <div className="filter-bar">
-          {[{ key: 'all', label: 'All' }, { key: 'brand', label: 'Brand' }, { key: 'uiux', label: 'UI/UX' }, { key: 'motion', label: 'Motion' }, { key: 'art', label: 'Art' }].map(c => (
+          {filterCategories.map(c => (
             <button key={c.key} className={'filter-btn' + (filter === c.key ? ' active' : '')} onClick={() => setFilter(c.key)}>
               {c.label}
             </button>

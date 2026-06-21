@@ -3,3 +3,6 @@ dist
 .DS_Store
 *.local
 developer-portfolios/
+
+# 大视频文件（超过 GitHub 100MB 限制）
+public/portfolios/AI视频作品集/意外的重逢.mp4
