@@ -13,7 +13,7 @@ const projects = [
 
   // AI 视频作品集
   { title: '40s 微笑', desc: 'AI 视频短片', cat: 'ai-video', type: 'video', img: '/portfolios/AI视频作品集/40s微笑.mp4', video: '/portfolios/AI视频作品集/40s微笑.mp4' },
-  { title: '意外的重逢', desc: 'AI 视频作品（文件较大，暂未上传）', cat: 'ai-video', type: 'placeholder', img: '' },
+  { title: '意外的重逢', desc: 'AI 视频作品', cat: 'ai-video', type: 'video', img: '', video: '/portfolios/AI视频作品集/意外的重逢.mp4' },
 
   // 电商
   { title: '商品主图一键生成', desc: 'AI 电商商品主图设计', cat: 'ecommerce', type: 'image', img: '/portfolios/电商/商品主图一键生成.png' },
