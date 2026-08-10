@@ -4,3 +4,6 @@ dist
 *.local
 developer-portfolios/
 
+
+# 作品集资源副本（已迁移至 public/portfolios/）
+作品集/
