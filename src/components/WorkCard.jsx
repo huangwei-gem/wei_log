@@ -1,37 +1,46 @@
-import { projects, filterCategories } from '../data.js'
-import { useState, useRef, useEffect } from 'react'
+export default function WorkCard({ project, onClick }) {
+  const isVideo = project.type === 'video'
 
-export default function WorkCard({ project }) {
-  const videoRef = useRef(null)
-  const handleClick = () => {
-    const url = project.type === 'video' ? project.video : project.img
-    if (url) window.open(url, '_blank')
-  }
   return (
-    <div className="work-card" onClick={handleClick}
-      onMouseEnter={() => videoRef.current?.play()}
-      onMouseLeave={() => { if (videoRef.current) { videoRef.current.pause(); videoRef.current.currentTime = 0 } }}>
-      <div className="work-thumb">
-        {project.type === 'video' ? (
+    <div className="work-card" onClick={() => onClick(project)}>
+      <div className="work-card-thumb">
+        {isVideo ? (
           <>
-            <video ref={videoRef} muted loop playsInline preload="metadata" poster={project.img || undefined}>
+            <video
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster={project.img || undefined}
+              className="work-card-media"
+            >
               <source src={project.video} type="video/mp4" />
             </video>
-            <div className="play-badge">🎬</div>
+            <span className="work-card-badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </span>
           </>
-        ) : project.type === 'placeholder' ? (
-          <div className="work-thumb-placeholder">
-            <span className="placeholder-icon">🎥</span>
-            <p className="placeholder-text">视频较大，暂未上传</p>
-          </div>
         ) : (
-          <img src={project.img} alt={project.title} loading="lazy" />
+          <img
+            className="work-card-media"
+            src={project.img}
+            alt={project.title}
+            loading="lazy"
+          />
         )}
-        <div className="work-overlay"><span>查看作品 →</span></div>
-      </div>
-      <div className="work-info">
-        <h3>{project.title}</h3>
-        <p>{project.desc}</p>
+
+        {/* Hover overlay */}
+        <div className="work-card-overlay">
+          <div className="work-card-overlay-content">
+            <h3 className="work-card-overlay-title">{project.title}</h3>
+            <div className="work-card-overlay-divider"></div>
+            <p className="work-card-overlay-desc">{project.desc}</p>
+            <span className="work-card-overlay-action">
+              {isVideo ? '播放视频' : '查看作品'}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   )
