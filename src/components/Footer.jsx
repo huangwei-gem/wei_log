@@ -3,7 +3,7 @@ export default function Footer() {
   return (
     <footer className="footer">
       <div className="container">
-        <p>&copy; {year} 黄伟 Wei. All rights reserved.</p>
+        <p>&copy; {year} 黄维 Wei. All rights reserved.</p>
         <div className="footer-links">
           <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a>
           <a href="https://behance.net" target="_blank" rel="noopener noreferrer">Behance</a>

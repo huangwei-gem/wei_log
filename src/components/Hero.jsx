@@ -5,7 +5,7 @@ export default function Hero() {
         <div className="hero-content">
           <div className="hero-text">
             <p className="hero-greeting">你好，我是</p>
-            <h1 className="hero-name">黄伟 <span className="hero-name-en">Wei</span></h1>
+            <h1 className="hero-name">黄维 <span className="hero-name-en">Wei</span></h1>
             <p className="hero-tagline">AI 视觉创作者 / 设计师</p>
             <p className="hero-desc">
               专注于 AI 视频生成、视觉设计和创意内容制作。

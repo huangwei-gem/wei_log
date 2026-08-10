@@ -6,7 +6,24 @@ import About from './components/About.jsx'
 import Contact from './components/Contact.jsx'
 import Footer from './components/Footer.jsx'
 
+function useTheme() {
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('theme')
+    return saved || 'dark'
+  })
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark')
+
+  return { theme, toggleTheme }
+}
+
 export default function App() {
+  const { theme, toggleTheme } = useTheme()
   const [activeSection, setActiveSection] = useState('works')
 
   useEffect(() => {
@@ -29,7 +46,7 @@ export default function App() {
 
   return (
     <>
-      <Navbar activeSection={activeSection} />
+      <Navbar activeSection={activeSection} theme={theme} toggleTheme={toggleTheme} />
       <Hero />
       <Works />
       <About />
