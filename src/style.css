@@ -129,14 +129,14 @@ a {
 }
 
 section {
-  padding: 120px 0;
+  padding: 80px 0;
   position: relative;
 }
 
 /* ========= 通用标题 ========= */
 .section-header {
   text-align: center;
-  margin-bottom: 64px;
+  margin-bottom: 40px;
 }
 
 .section-label {
@@ -496,7 +496,7 @@ section {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-bottom: 48px;
+  margin-bottom: 32px;
   flex-wrap: wrap;
 }
 
@@ -528,7 +528,7 @@ section {
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
+  gap: 16px;
   opacity: 0;
   transform: translateY(30px);
   transition: opacity 0.6s ease, transform 0.6s ease;
@@ -557,7 +557,7 @@ section {
   box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 40px var(--accent-glow);
 }
 
-.work-card-thumb {
+.work-card-inner {
   width: 100%;
   height: 100%;
   position: relative;
@@ -573,6 +573,20 @@ section {
 
 .work-card:hover .work-card-media {
   transform: scale(1.08);
+}
+
+/* 底部渐变覆盖层 */
+.work-card-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.85) 100%);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.work-card:hover .work-card-gradient {
+  opacity: 0;
 }
 
 /* 视频播放徽章 */
@@ -598,6 +612,24 @@ section {
   transform: scale(1.1);
 }
 
+/* 顶部渐变条 */
+.work-card-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.5s ease;
+  z-index: 2;
+}
+
+.work-card:hover .work-card-bar {
+  transform: scaleX(1);
+}
+
 /* 卡片悬浮覆盖层 — 参考 upma.cn 风格 */
 .work-card-overlay {
   position: absolute;
@@ -616,8 +648,8 @@ section {
   opacity: 1;
 }
 
-/* 顶部渐变条 */
-.work-card-overlay::before {
+/* 顶部渐变条 (旧) */
+.work-card-overlay-old::before {
   content: '';
   position: absolute;
   top: 0;
@@ -630,7 +662,7 @@ section {
   transition: transform 0.5s ease;
 }
 
-.work-card:hover .work-card-overlay::before {
+.work-card:hover .work-card-overlay-old::before {
   transform: scaleX(1);
 }
 
@@ -912,7 +944,7 @@ section {
 .contact-info-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 16px;
 }
 
 .contact-card {
@@ -1011,7 +1043,7 @@ section {
 
 .footer-links {
   display: flex;
-  gap: 24px;
+  gap: 16px;
 }
 
 .footer-links a {
@@ -1087,7 +1119,7 @@ section {
   }
 
   .about-stats {
-    gap: 24px;
+    gap: 16px;
     flex-wrap: wrap;
   }
 
