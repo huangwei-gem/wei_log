@@ -33,7 +33,7 @@ export default function Hero() {
         </div>
       </div>
       <div className="scroll-indicator">
-        <span>向下滚动</span>
+        <span>滚动浏览作品</span>
         <div className="scroll-line"></div>
       </div>
     </section>
