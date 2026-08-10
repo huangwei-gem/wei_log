@@ -1,7 +1,100 @@
 import { projects, filterCategories } from '../data.js'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import WorkCard from './WorkCard.jsx'
 import Lightbox from './Lightbox.jsx'
+
+// 单个作品卡片
+function MarqueeCard({ project, onClick }) {
+  const isVideo = project.type === 'video'
+
+  return (
+    <div className="marquee-card" onClick={() => onClick(project)}>
+      <div className="marquee-card-inner">
+        {isVideo ? (
+          <>
+            <video
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster={project.img || undefined}
+              className="marquee-card-media"
+            >
+              <source src={project.video} type="video/mp4" />
+            </video>
+            <span className="marquee-card-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+          </>
+        ) : (
+          <img
+            className="marquee-card-media"
+            src={project.img}
+            alt={project.title}
+            loading="lazy"
+          />
+        )}
+
+        {/* 底部渐变 */}
+        <div className="marquee-card-gradient" />
+
+        {/* 悬浮覆盖层 */}
+        <div className="marquee-card-overlay">
+          {/* 顶部渐变条 */}
+          <div className="marquee-card-bar" />
+
+          <div className="marquee-card-content">
+            <p className="marquee-card-title">{project.title}</p>
+            <div className="marquee-card-divider" />
+            <p className="marquee-card-desc">{project.desc}</p>
+            <span className="marquee-card-action">
+              {isVideo ? '播放' : '查看'}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 单行轮播条
+function MarqueeRow({ projects, direction = 'left', speed = 32 }) {
+  const [isPaused, setIsPaused] = useState(false)
+  const animName = direction === 'left' ? 'scroll-left' : 'scroll-right'
+
+  // 复制两份实现无缝循环
+  const doubled = [...projects, ...projects]
+
+  return (
+    <div
+      className="marquee-row"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      {/* 左右渐隐边缘 */}
+      <div className="marquee-fade marquee-fade-left" />
+      <div className="marquee-fade marquee-fade-right" />
+
+      <div
+        className="marquee-track"
+        style={{
+          animationName: animName,
+          animationDuration: `${speed}s`,
+          animationPlayState: isPaused ? 'paused' : 'running',
+        }}
+      >
+        {doubled.map((p, i) => (
+          <MarqueeCard key={p.title + '-' + i} project={p} />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function Works() {
   const [filter, setFilter] = useState('all')
@@ -25,7 +118,6 @@ export default function Works() {
 
   const filtered = filter === 'all' ? projects : projects.filter(p => p.cat === filter)
 
-  // 只在 lightbox 打开时计算索引，关闭时保持 -1
   const currentIndex = lightboxProject
     ? filtered.findIndex(p => p === lightboxProject)
     : -1
@@ -51,13 +143,12 @@ export default function Works() {
     })
   }, [filtered])
 
-  // 用函数式更新避免 currentIndex 依赖
   const hasPrev = lightboxProject ? currentIndex > 0 : false
   const hasNext = lightboxProject ? currentIndex < filtered.length - 1 : false
 
   return (
     <>
-      <section id="works" ref={ref}>
+      <section id="works" ref={ref} className="works-marquee-section">
         <div className="container">
           <div className="section-header">
             <p className="section-label">WORKS</p>
@@ -76,13 +167,25 @@ export default function Works() {
               </button>
             ))}
           </div>
-
-          <div className={'works-grid' + (visible ? ' visible' : '')}>
-            {filtered.map((p, i) => (
-              <WorkCard key={p.title + '-' + i} project={p} onClick={openLightbox} />
-            ))}
-          </div>
         </div>
+
+        {/* 轮播区域 */}
+        {visible && filtered.length > 0 && (
+          <div className="marquee-section">
+            <MarqueeRow
+              projects={filtered}
+              direction="left"
+              speed={Math.max(20, filtered.length * 4)}
+            />
+            {filtered.length >= 3 && (
+              <MarqueeRow
+                projects={filtered}
+                direction="right"
+                speed={Math.max(25, filtered.length * 5)}
+              />
+            )}
+          </div>
+        )}
       </section>
 
       <Lightbox
