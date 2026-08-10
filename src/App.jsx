@@ -28,10 +28,16 @@ export default function App() {
 
   useEffect(() => {
     const handleScroll = () => {
+      // 页面顶部时，不设置 active section
+      if (window.scrollY < 200) {
+        setActiveSection('')
+        return
+      }
+
       for (const id of ['works', 'about', 'contact']) {
         const el = document.getElementById(id)
         if (el) {
-          const top = el.offsetTop - 100
+          const top = el.offsetTop - 120
           const bottom = top + el.offsetHeight
           if (window.scrollY >= top && window.scrollY < bottom) {
             setActiveSection(id)
@@ -40,7 +46,9 @@ export default function App() {
         }
       }
     }
+
     window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // 初始检查
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
