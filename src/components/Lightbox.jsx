@@ -152,6 +152,10 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
           {isVideo ? (
             <div className="lightbox-video-wrapper">
               {/* 海报图 — 始终显示，播放后淡出 */}
+              {/*
+                修复：pointer-events: none 让海报不阻挡视频原生控件的交互
+                海报只是视觉装饰，不需要接收任何鼠标/触摸事件
+              */}
               <img
                 className="lightbox-poster"
                 src={project.img}
@@ -166,15 +170,20 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
                   opacity: videoState === 'playing' ? 0 : 1,
                   transition: 'opacity 0.5s ease',
                   zIndex: 1,
+                  pointerEvents: 'none', // ⭐ 关键修复：不阻挡视频控件
                 }}
               />
 
-              {/* 视频元素 */}
+              {/*
+                修复：controls 始终开启，不再条件渲染
+                海报（z-index:1）覆盖在视频上方，播放前隐藏控件
+                播放后海报淡出（opacity:0），控件自然可见并可交互
+              */}
               <video
                 ref={videoRef}
                 className="lightbox-video"
                 src={project.video}
-                controls={videoState === 'playing'}
+                controls
                 playsInline
                 preload="metadata"
                 poster={project.img}
