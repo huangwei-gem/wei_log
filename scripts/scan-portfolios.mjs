@@ -13,6 +13,8 @@
 //     is automatically used as the video cover
 //   - Videos without a poster will auto-generate one from the first
 //     frame (requires ffmpeg, silently skipped if unavailable)
+//   - Images are automatically compressed via sharp (lossy PNG/JPEG)
+//     to reduce page load times
 //   - Each folder may contain a meta.json to customize title/desc:
 //       {
 //         "girl1.png": { "title": "Girl 1", "desc": "Character design" },
@@ -29,6 +31,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import sharp from 'sharp'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '..')
@@ -70,7 +73,6 @@ function isPoster(fileName) {
 
 function findPosterForVideo(videoName, files) {
   const videoBase = path.basename(videoName, path.extname(videoName)).toLowerCase()
-  // Exact match: video name + poster suffix (e.g. reunion.mp4 -> reunion_poster.jpg)
   const exact = files.find(
     (f) =>
       isPoster(f) &&
@@ -95,12 +97,110 @@ function readMeta(folderPath) {
   }
 }
 
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + 'B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB'
+  return (bytes / (1024 * 1024)).toFixed(2) + 'MB'
+}
+
 function isFfmpegAvailable() {
   try {
     execSync('ffmpeg -version', { stdio: 'ignore' })
     return true
   } catch {
     return false
+  }
+}
+
+// ---------- Image compression ----------
+
+async function compressImage(filePath) {
+  const ext = path.extname(filePath).toLowerCase()
+  const sizeBefore = fs.statSync(filePath).size
+  const tmpPath = filePath + '.tmp'
+
+  try {
+    if (ext === '.png') {
+      await sharp(filePath)
+        .png({ quality: 80, effort: 10, palette: true })
+        .toFile(tmpPath)
+    } else if (ext === '.jpg' || ext === '.jpeg') {
+      await sharp(filePath)
+        .jpeg({ quality: 82, mozjpeg: true })
+        .toFile(tmpPath)
+    } else {
+      return // webp/gif — skip
+    }
+
+    const sizeAfter = fs.statSync(tmpPath).size
+    // Only replace if compression actually saved space (>5%)
+    if (sizeAfter < sizeBefore * 0.95) {
+      fs.renameSync(tmpPath, filePath)
+      const saved = Math.round((1 - sizeAfter / sizeBefore) * 100)
+      return { name: path.basename(filePath), before: sizeBefore, after: sizeAfter, saved }
+    } else {
+      fs.unlinkSync(tmpPath)
+      return null // not worth replacing
+    }
+  } catch (err) {
+    try { fs.unlinkSync(tmpPath) } catch {}
+    console.warn(
+      t(
+        `  WARN: Failed to compress ${path.basename(filePath)}: ${err.message}`,
+        `  ⚠ 压缩失败 ${path.basename(filePath)}: ${err.message}`,
+      ),
+    )
+    return null
+  }
+}
+
+async function compressAllImages() {
+  console.log(t('--- Compressing images ---', '--- 压缩图片 ---'))
+
+  const folderNames = fs.readdirSync(portfoliosDir)
+    .filter((name) => fs.statSync(path.join(portfoliosDir, name)).isDirectory())
+
+  let totalBefore = 0
+  let totalAfter = 0
+  let compressedCount = 0
+
+  for (const folder of folderNames) {
+    const folderPath = path.join(portfoliosDir, folder)
+    const files = fs.readdirSync(folderPath)
+    const images = files.filter((f) => {
+      const ext = path.extname(f).toLowerCase()
+      return (ext === '.png' || ext === '.jpg' || ext === '.jpeg') && !f.startsWith('.')
+    })
+
+    const results = await Promise.all(
+      images.map((img) => compressImage(path.join(folderPath, img))),
+    )
+
+    for (const r of results) {
+      if (r) {
+        totalBefore += r.before
+        totalAfter += r.after
+        compressedCount++
+        console.log(
+          t(
+            `  ${r.name}: ${formatSize(r.before)} -> ${formatSize(r.after)} (${r.saved}% saved)`,
+            `  ${r.name}: ${formatSize(r.before)} → ${formatSize(r.after)}（节省 ${r.saved}%）`,
+          ),
+        )
+      }
+    }
+  }
+
+  if (compressedCount > 0) {
+    const totalSaved = Math.round((1 - totalAfter / totalBefore) * 100)
+    console.log(
+      t(
+        `  Total: ${compressedCount} image(s) compressed, ${formatSize(totalBefore)} -> ${formatSize(totalAfter)} (${totalSaved}% saved)`,
+        `  共压缩 ${compressedCount} 张图片，${formatSize(totalBefore)} → ${formatSize(totalAfter)}（节省 ${totalSaved}%）`,
+      ),
+    )
+  } else {
+    console.log(t('  No images needed compression', '  没有需要压缩的图片'))
   }
 }
 
@@ -124,7 +224,6 @@ function generateMissingPosters() {
     const videos = files.filter((f) => VIDEO_EXT.has(path.extname(f).toLowerCase()))
 
     for (const v of videos) {
-      // Skip if poster already exists
       if (findPosterForVideo(v, files)) continue
 
       const videoPath = path.join(folderPath, v)
@@ -138,7 +237,6 @@ function generateMissingPosters() {
         ),
       )
       try {
-        // Extract first frame at high quality
         execSync(
           `ffmpeg -i "${videoPath}" -vframes 1 -q:v 2 -y "${posterPath}"`,
           { stdio: 'ignore', timeout: 30000 },
@@ -260,64 +358,71 @@ function buildCategories(projects) {
 
 // ---------- Run ----------
 
-if (!fs.existsSync(portfoliosDir)) {
-  console.error(t(`X Folder not found: ${portfoliosDir}`, `✗ 未找到目录: ${portfoliosDir}`))
-  process.exit(1)
-}
-
-// Step 1: Auto-generate missing video posters
-console.log(t('--- Generating video posters ---', '--- 生成视频封面 ---'))
-generateMissingPosters()
-
-// Step 2: Scan folders and build data
-const knownOrder = Object.keys(FOLDER_CATEGORIES)
-const folderNames = fs.readdirSync(portfoliosDir)
-  .filter((name) => fs.statSync(path.join(portfoliosDir, name)).isDirectory())
-  .sort((a, b) => {
-    const ia = knownOrder.indexOf(a)
-    const ib = knownOrder.indexOf(b)
-    if (ia !== -1 && ib !== -1) return ia - ib
-    if (ia !== -1) return -1
-    if (ib !== -1) return 1
-    return a.localeCompare(b, 'zh-CN')
-  })
-
-const projects = []
-const catToFolder = {}
-for (const folder of folderNames) {
-  const items = scanFolder(folder)
-  if (!FOLDER_CATEGORIES[folder]) {
-    console.warn(
-      t(
-        `  WARN: Folder "${folder}" is not in FOLDER_CATEGORIES, using default category (add it at the top of this script)`,
-        `  ⚠ 新文件夹「${folder}」不在 FOLDER_CATEGORIES 中，已使用默认分类（可在脚本顶部添加）`,
-      ),
-    )
+async function main() {
+  if (!fs.existsSync(portfoliosDir)) {
+    console.error(t(`X Folder not found: ${portfoliosDir}`, `✗ 未找到目录: ${portfoliosDir}`))
+    process.exit(1)
   }
-  for (const item of items) catToFolder[item.cat] = folder
-  projects.push(...items)
+
+  // Step 1: Compress images
+  await compressAllImages()
+
+  // Step 2: Auto-generate missing video posters
+  console.log(t('--- Generating video posters ---', '--- 生成视频封面 ---'))
+  generateMissingPosters()
+
+  // Step 3: Scan folders and build data
+  const knownOrder = Object.keys(FOLDER_CATEGORIES)
+  const folderNames = fs.readdirSync(portfoliosDir)
+    .filter((name) => fs.statSync(path.join(portfoliosDir, name)).isDirectory())
+    .sort((a, b) => {
+      const ia = knownOrder.indexOf(a)
+      const ib = knownOrder.indexOf(b)
+      if (ia !== -1 && ib !== -1) return ia - ib
+      if (ia !== -1) return -1
+      if (ib !== -1) return 1
+      return a.localeCompare(b, 'zh-CN')
+    })
+
+  const projects = []
+  const catToFolder = {}
+  for (const folder of folderNames) {
+    const items = scanFolder(folder)
+    if (!FOLDER_CATEGORIES[folder]) {
+      console.warn(
+        t(
+          `  WARN: Folder "${folder}" is not in FOLDER_CATEGORIES, using default category (add it at the top of this script)`,
+          `  ⚠ 新文件夹「${folder}」不在 FOLDER_CATEGORIES 中，已使用默认分类（可在脚本顶部添加）`,
+        ),
+      )
+    }
+    for (const item of items) catToFolder[item.cat] = folder
+    projects.push(...items)
+  }
+
+  const categories = buildCategories(projects)
+
+  const output = [
+    buildDataJs(projects, catToFolder),
+    '',
+    'const filterCategories = [',
+    ...categories.map((c) => `  { key: '${c.key}', label: '${c.label}' },`),
+    ']',
+    '',
+    'export { projects, filterCategories }',
+    '',
+  ].join('\n')
+
+  fs.writeFileSync(dataFile, output, 'utf-8')
+
+  // Summary
+  console.log(t(`\n✓ Scan complete! Generated ${projects.length} work(s):\n`, `\n✓ 扫描完成！共生成 ${projects.length} 个作品：\n`))
+  for (const folder of folderNames) {
+    const count = projects.filter((p) => p.img.includes(`/${folder}/`)).length
+    console.log(`  📁 ${folder}  →  ${count} ${t('item(s)', '个作品')}`)
+  }
+  console.log(t('\nWritten to src/data.js', '\n已写入 src/data.js'))
+  console.log(t('Next: git add . && git commit -m "add works" && git push to deploy', '接下来：git add . && git commit -m "add works" && git push 即可自动部署上线'))
 }
 
-const categories = buildCategories(projects)
-
-const output = [
-  buildDataJs(projects, catToFolder),
-  '',
-  'const filterCategories = [',
-  ...categories.map((c) => `  { key: '${c.key}', label: '${c.label}' },`),
-  ']',
-  '',
-  'export { projects, filterCategories }',
-  '',
-].join('\n')
-
-fs.writeFileSync(dataFile, output, 'utf-8')
-
-// Summary
-console.log(t(`\n✓ Scan complete! Generated ${projects.length} work(s):\n`, `\n✓ 扫描完成！共生成 ${projects.length} 个作品：\n`))
-for (const folder of folderNames) {
-  const count = projects.filter((p) => p.img.includes(`/${folder}/`)).length
-  console.log(`  📁 ${folder}  →  ${count} ${t('item(s)', '个作品')}`)
-}
-console.log(t('\nWritten to src/data.js', '\n已写入 src/data.js'))
-console.log(t('Next: git add . && git commit -m "add works" && git push to deploy', '接下来：git add . && git commit -m "add works" && git push 即可自动部署上线'))
+await main()
