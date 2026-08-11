@@ -4,9 +4,12 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
   const [videoState, setVideoState] = useState('poster') // 'poster' | 'loading' | 'playing' | 'error'
   const videoRef = useRef(null)
   const [progress, setProgress] = useState(0)
-  const loadStartRef = useRef(null)
+  const videoStateRef = useRef('poster')
 
-  // 使用 ref 保存回调，避免 handleKeyDown 变化导致 effect 重新执行
+  // 同步 videoState 到 ref，避免闭包过期
+  videoStateRef.current = videoState
+
+  // 使用 ref 保存回调，避免变化导致 effect 重新执行
   const onCloseRef = useRef(onClose)
   const onPrevRef = useRef(onPrev)
   const onNextRef = useRef(onNext)
@@ -28,13 +31,14 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
   const handleKeyDownRef = useRef(handleKeyDown)
   handleKeyDownRef.current = handleKeyDown
 
-  // Reset video state when project changes
+  // 重置视频状态
   useEffect(() => {
     setVideoState('poster')
+    videoStateRef.current = 'poster'
     setProgress(0)
-    loadStartRef.current = null
   }, [project])
 
+  // 键盘事件 + 滚动锁定 + 视频预加载
   useEffect(() => {
     if (!project) return
 
@@ -43,14 +47,14 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
     document.body.style.overflow = 'hidden'
     document.body.style.touchAction = 'none'
 
-    // 预加载视频元数据
+    // 预加载视频资源
     if (project.type === 'video' && project.video) {
       const link = document.createElement('link')
       link.rel = 'preload'
       link.as = 'video'
       link.href = project.video
       document.head.appendChild(link)
-      // 在页面隐藏时清理
+
       return () => {
         document.removeEventListener('keydown', handler)
         document.body.style.overflow = ''
@@ -66,40 +70,59 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
     }
   }, [project])
 
+  // 点击播放
   const handlePlay = useCallback(() => {
     setVideoState('loading')
-    // 给浏览器一点时间显示加载状态
-    setTimeout(() => {
-      if (videoRef.current) {
-        videoRef.current.load() // 开始加载
-        videoRef.current.play().then(() => {
-          setVideoState('playing')
-        }).catch(() => {
-          // 自动播放可能被阻止，显示播放按钮让用户手动点击
-          setVideoState('poster')
+    videoStateRef.current = 'loading'
+
+    // 下一帧开始加载，让 UI 先渲染 loading 状态
+    requestAnimationFrame(() => {
+      const video = videoRef.current
+      if (!video) return
+
+      video.load() // 开始加载
+      video.play()
+        .then(() => {
+          // 播放成功
+          if (videoStateRef.current === 'loading') {
+            setVideoState('playing')
+            videoStateRef.current = 'playing'
+          }
         })
-      }
-    }, 100)
+        .catch((err) => {
+          // 播放被阻止（如用户未交互）
+          if (err.name === 'NotAllowedError') {
+            setVideoState('poster')
+            videoStateRef.current = 'poster'
+          } else {
+            setVideoState('error')
+            videoStateRef.current = 'error'
+          }
+        })
+    })
   }, [])
 
+  // 视频可播放时自动切换到 playing
   const handleCanPlay = useCallback(() => {
-    if (videoState === 'loading') {
+    if (videoStateRef.current === 'loading') {
       setVideoState('playing')
+      videoStateRef.current = 'playing'
     }
-  }, [videoState])
+  }, [])
 
+  // 加载失败
   const handleError = useCallback(() => {
     setVideoState('error')
+    videoStateRef.current = 'error'
   }, [])
 
-  // 进度更新
+  // 缓冲进度
   const handleProgress = useCallback(() => {
-    if (videoRef.current && videoRef.current.buffered.length > 0) {
-      const buffered = videoRef.current.buffered.end(videoRef.current.buffered.length - 1)
-      const duration = videoRef.current.duration
-      if (duration > 0) {
-        setProgress(Math.min(100, Math.round((buffered / duration) * 100)))
-      }
+    const video = videoRef.current
+    if (!video || video.buffered.length === 0) return
+    const buffered = video.buffered.end(video.buffered.length - 1)
+    if (video.duration > 0) {
+      setProgress(Math.min(100, Math.round((buffered / video.duration) * 100)))
     }
   }, [])
 
@@ -128,7 +151,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
         <div className="lightbox-media">
           {isVideo ? (
             <div className="lightbox-video-wrapper">
-              {/* 海报图 */}
+              {/* 海报图 — 始终显示，播放后淡出 */}
               <img
                 className="lightbox-poster"
                 src={project.img}
@@ -161,7 +184,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
                 style={{ zIndex: 2 }}
               />
 
-              {/* 播放按钮覆盖层 */}
+              {/* 播放按钮 — 只在海报状态显示 */}
               {videoState === 'poster' && (
                 <button className="lightbox-play-btn" onClick={handlePlay} aria-label="播放">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
@@ -172,7 +195,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
 
               {/* 加载中 */}
               {videoState === 'loading' && (
-                <div className="lightbox-loading">
+                <div className="lightbox-loading" style={{ zIndex: 6 }}>
                   <div className="lightbox-spinner" />
                   <p>正在加载视频...</p>
                   {progress > 0 && (
@@ -185,9 +208,13 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
 
               {/* 加载失败 */}
               {videoState === 'error' && (
-                <div className="lightbox-loading">
+                <div className="lightbox-loading" style={{ zIndex: 6 }}>
                   <p style={{ color: '#ef4444' }}>视频加载失败</p>
-                  <button className="btn btn-primary" style={{ marginTop: 12, padding: '8px 20px' }} onClick={handlePlay}>
+                  <button
+                    className="btn btn-primary"
+                    style={{ marginTop: 12, padding: '8px 20px', fontSize: '0.85rem' }}
+                    onClick={handlePlay}
+                  >
                     重试
                   </button>
                 </div>
