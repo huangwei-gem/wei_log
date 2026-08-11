@@ -27,11 +27,49 @@ function useTheme() {
   return { theme, toggleTheme }
 }
 
+// 骨架屏 — 首屏加载时显示
+function MarqueeSkeleton() {
+  return (
+    <section className="hero-marquee-section">
+      <div className="marquee-section">
+        <div className="marquee-skeleton-row">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="marquee-skeleton-card">
+              <div className="skeleton-pulse" style={{ width: '100%', height: '100%', borderRadius: 16 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function App() {
   const { theme, toggleTheme } = useTheme()
   const [activeSection, setActiveSection] = useState('')
   const [lightboxProject, setLightboxProject] = useState(null)
   const [filter, setFilter] = useState('all')
+  const [marqueeReady, setMarqueeReady] = useState(false)
+
+  // 预加载缩略图 — 首屏渲染后立即开始
+  useEffect(() => {
+    const preloadThumbnails = () => {
+      const thumbs = projects.slice(0, 8).map(p => p.thumb || p.img).filter(Boolean)
+      thumbs.forEach(src => {
+        const link = document.createElement('link')
+        link.rel = 'preload'
+        link.as = 'image'
+        link.href = src
+        document.head.appendChild(link)
+      })
+    }
+    // 使用 requestIdleCallback 或 setTimeout 延迟预加载，不阻塞首屏渲染
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(preloadThumbnails, { timeout: 2000 })
+    } else {
+      setTimeout(preloadThumbnails, 500)
+    }
+  }, [])
 
   const currentIndex = lightboxProject
     ? projects.findIndex(p => p === lightboxProject)
@@ -92,7 +130,7 @@ export default function App() {
 
       {/* 首页：Hero + 作品轮播展示 (首屏立即加载) */}
       <Hero />
-      <Suspense fallback={<div className="section-loading" />}>
+      <Suspense fallback={<MarqueeSkeleton />}>
         <HeroMarquee projects={projects} onCardClick={openLightbox} />
       </Suspense>
 

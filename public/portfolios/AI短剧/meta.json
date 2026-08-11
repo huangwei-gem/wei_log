@@ -1,9 +1,9 @@
 {
-  "故事板.jpg": { "title": "故事板", "desc": "AI 短剧故事板设计" },
-  "女1_merge.png": { "title": "女角色 1", "desc": "AI 短剧角色设计" },
-  "女2_merge.png": { "title": "女角色 2", "desc": "AI 短剧角色设计" },
-  "女3_merge.png": { "title": "女角色 3", "desc": "AI 短剧角色设计" },
-  "男1_merge.png": { "title": "男角色 1", "desc": "AI 短剧角色设计" },
-  "男2_merge.png": { "title": "男角色 2", "desc": "AI 短剧角色设计" },
-  "男3_merge.png": { "title": "男角色 3", "desc": "AI 短剧角色设计" }
+  "女1_merge.png": { "title": "女角色 1", "desc": "AI 短剧角色设计", "date": "2026-08-01" },
+  "女2_merge.png": { "title": "女角色 2", "desc": "AI 短剧角色设计", "date": "2026-08-01" },
+  "女3_merge.png": { "title": "女角色 3", "desc": "AI 短剧角色设计", "date": "2026-08-01" },
+  "故事板.jpg": { "title": "故事板", "desc": "AI 短剧故事板设计", "date": "2026-08-01" },
+  "男1_merge.png": { "title": "男角色 1", "desc": "AI 短剧角色设计", "date": "2026-08-01" },
+  "男2_merge.png": { "title": "男角色 2", "desc": "AI 短剧角色设计", "date": "2026-08-01" },
+  "男3_merge.png": { "title": "男角色 3", "desc": "AI 短剧角色设计", "date": "2026-08-01" }
 }

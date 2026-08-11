@@ -1,6 +1,6 @@
 import { projects, filterCategories } from '../data.js'
 import LazyVideo from './LazyVideo.jsx'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 /* ==========================================================
    网格画廊卡片（参考 upma.cn/image-prompts）
@@ -27,9 +27,12 @@ function WorkCard({ project, onClick }) {
         ) : (
           <img
             className="work-card-media"
-            src={project.img}
+            src={project.thumb || project.img}
+            srcSet={`${project.thumb || project.img} 400w, ${project.img} 1200w`}
+            sizes="(max-width: 768px) 50vw, 33vw"
             alt={project.title}
             loading="lazy"
+            decoding="async"
           />
         )}
 
@@ -43,6 +46,7 @@ function WorkCard({ project, onClick }) {
             <p className="work-card-overlay-title">{project.title}</p>
             <div className="work-card-overlay-divider" />
             <p className="work-card-overlay-desc">{project.desc}</p>
+            {project.date && <span className="work-card-date">{project.date}</span>}
             <span className="work-card-overlay-action">
               {isVideo ? '播放' : '查看'}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -62,9 +66,38 @@ function WorkCard({ project, onClick }) {
    ========================================================== */
 function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
   const [isPaused, setIsPaused] = useState(false)
+  const trackRef = useRef(null)
+  const [initialOffset, setInitialOffset] = useState(0)
+  const [ready, setReady] = useState(false)
   const animName = direction === 'left' ? 'scroll-left' : 'scroll-right'
 
-  const doubled = [...projects, ...projects]
+  // Calculate initial offset to center the first (newest) item
+  useEffect(() => {
+    if (!trackRef.current) return
+    const track = trackRef.current
+    // Wait for layout
+    requestAnimationFrame(() => {
+      const firstCard = track.querySelector('.marquee-card')
+      if (firstCard) {
+        const cardWidth = firstCard.offsetWidth
+        const gap = 16 // margin-right from CSS
+        const viewportWidth = window.innerWidth
+        // Center the first card: offset = viewportWidth/2 - cardWidth/2
+        // But we need to offset from the start of the doubled array
+        // The first card is at position 0, we want it at viewportWidth/2 - cardWidth/2
+        const offset = viewportWidth / 2 - cardWidth / 2
+        setInitialOffset(offset)
+      }
+      setReady(true)
+    })
+  }, [])
+
+  // Sort projects by date for consistent ordering (newest first)
+  const sorted = [...projects].sort((a, b) => {
+    if (a.date && b.date) return b.date.localeCompare(a.date)
+    return 0
+  })
+  const doubled = [...sorted, ...sorted]
 
   return (
     <div
@@ -76,11 +109,14 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
       <div className="marquee-fade marquee-fade-right" />
 
       <div
+        ref={trackRef}
         className="marquee-track"
         style={{
-          animationName: animName,
+          animationName: ready ? animName : 'none',
           animationDuration: `${speed}s`,
           animationPlayState: isPaused ? 'paused' : 'running',
+          transform: ready ? undefined : `translateX(${initialOffset}px)`,
+          opacity: ready ? 1 : 0,
         }}
       >
         {doubled.map((p, i) => (
@@ -96,7 +132,7 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
                     muted
                     loop
                     playsInline
-                    preload="metadata"
+                    preload="none"
                     poster={p.img || undefined}
                     className="marquee-card-media"
                   >
@@ -111,9 +147,11 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
               ) : (
                 <img
                   className="marquee-card-media"
-                  src={p.img}
+                  src={p.thumb || p.img}
                   alt={p.title}
                   loading="lazy"
+                  decoding="async"
+                  fetchpriority={i < 6 ? 'high' : 'low'}
                 />
               )}
               <div className="marquee-card-gradient" />
@@ -123,6 +161,7 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
                   <p className="marquee-card-title">{p.title}</p>
                   <div className="marquee-card-divider" />
                   <p className="marquee-card-desc">{p.desc}</p>
+                  {p.date && <span className="marquee-card-date">{p.date}</span>}
                   <span className="marquee-card-action">
                     {p.type === 'video' ? '播放' : '查看'}
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

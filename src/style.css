@@ -1502,3 +1502,77 @@ section {
   overflow: hidden;
   background: var(--card-bg);
 }
+
+/* ==========================================
+   上传时间显示
+   ========================================== */
+.work-card-date {
+  display: block;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.marquee-card-date {
+  display: block;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================
+   骨架屏（加载占位）
+   ========================================== */
+.marquee-skeleton-row {
+  display: flex;
+  gap: 16px;
+  padding: 0 24px;
+  overflow: hidden;
+}
+
+.marquee-skeleton-card {
+  flex-shrink: 0;
+  width: 240px;
+  aspect-ratio: 3 / 4;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+@keyframes skeleton-pulse {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.3; }
+}
+
+.skeleton-pulse {
+  background: var(--bg-card);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* ==========================================
+   性能优化
+   ========================================== */
+.marquee-card {
+  will-change: transform;
+  contain: layout style;
+}
+
+.marquee-card-media {
+  will-change: transform;
+  contain: paint;
+}
+
+.work-card {
+  contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: 400px 533px;
+}
+
+/* 图片解码优化 */
+.marquee-card-media,
+.work-card-media {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}

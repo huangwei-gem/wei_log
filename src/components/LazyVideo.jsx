@@ -38,20 +38,25 @@ export default function LazyVideo({ poster, videoSrc, className, onError }) {
   const cls = className ? className + ' lazy-video-container' : 'lazy-video-container'
 
   return (
-    <div ref={containerRef} className={cls} style={{ position: 'relative' }}>
+    <div ref={containerRef} className={cls} style={{ position: 'relative', background: 'var(--bg-card, #111)' }}>
+      {/* Poster always loads immediately */}
       <img
         src={poster}
         alt=""
         className="lazy-video-poster"
+        loading="lazy"
+        decoding="async"
         style={{
           width: '100%',
           height: '100%',
           objectFit: 'cover',
           position: 'absolute',
           inset: 0,
+          zIndex: 1,
         }}
       />
 
+      {/* Video loads only when in viewport */}
       {shouldLoad && !hasError && (
         <video
           muted
@@ -65,11 +70,29 @@ export default function LazyVideo({ poster, videoSrc, className, onError }) {
             objectFit: 'cover',
             position: 'absolute',
             inset: 0,
+            zIndex: 2,
           }}
           onError={handleError}
         >
           <source src={videoSrc} type="video/mp4" />
         </video>
+      )}
+
+      {/* Error fallback */}
+      {hasError && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-muted)',
+          fontSize: '0.8rem',
+          zIndex: 3,
+          background: 'var(--bg-card, #111)',
+        }}>
+          视频加载失败
+        </div>
       )}
     </div>
   )
