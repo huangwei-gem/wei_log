@@ -1,9 +1,9 @@
 import { projects, filterCategories } from '../data.js'
 import LazyVideo from './LazyVideo.jsx'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 /* ==========================================================
-   网格画廊卡片（参考 upma.cn/image-prompts）
+   网格画廊卡片
    ========================================================== */
 function WorkCard({ project, onClick }) {
   const isVideo = project.type === 'video'
@@ -13,11 +13,7 @@ function WorkCard({ project, onClick }) {
       <div className="work-card-inner">
         {isVideo ? (
           <>
-            <LazyVideo
-            poster={project.img}
-            videoSrc={project.video}
-            className="work-card-media"
-          />
+            <LazyVideo poster={project.img} videoSrc={project.video} className="work-card-media" />
             <span className="work-card-badge">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M8 5v14l11-7z" />
@@ -25,17 +21,8 @@ function WorkCard({ project, onClick }) {
             </span>
           </>
         ) : (
-          <img
-            className="work-card-media"
-            src={project.thumb || project.img}
-            srcSet={`${project.thumb || project.img} 400w, ${project.img} 1200w`}
-            sizes="(max-width: 768px) 50vw, 33vw"
-            alt={project.title}
-            loading="lazy"
-            decoding="async"
-          />
+          <img className="work-card-media" src={project.thumb || project.img} alt={project.title} loading="lazy" decoding="async" />
         )}
-
         <div className="work-card-gradient" />
         <div className="work-card-overlay">
           <div className="work-card-bar" />
@@ -47,8 +34,7 @@ function WorkCard({ project, onClick }) {
             <span className="work-card-overlay-action">
               {isVideo ? '播放' : '查看'}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14" />
-                <path d="m12 5 7 7-7 7" />
+                <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
               </svg>
             </span>
           </div>
@@ -59,15 +45,16 @@ function WorkCard({ project, onClick }) {
 }
 
 /* ==========================================================
-   轮播行（首页展示用）— JS 驱动动画，支持初始居中
+   轮播行 — JS 驱动，最新作品居中展示
    ========================================================== */
 function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
-  const [isPaused, setIsPaused] = useState(false)
   const trackRef = useRef(null)
   const posRef = useRef(0)
   const animFrameRef = useRef(null)
   const lastTimeRef = useRef(0)
+  const pausedRef = useRef(false)
   const [ready, setReady] = useState(false)
+  const initializedRef = useRef(false)
 
   // Sort by date descending (newest first)
   const sorted = [...projects].sort((a, b) => {
@@ -76,8 +63,11 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
   })
   const doubled = [...sorted, ...sorted]
 
-  // Initialize position and start animation
+  // Initialize position once and start animation
   useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+
     const track = trackRef.current
     if (!track) return
 
@@ -89,15 +79,21 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
       const viewportWidth = window.innerWidth
       const totalWidth = cardWidth * sorted.length
 
-      // Calculate offset to center the first (newest) card
-      const offset = viewportWidth / 2 - cardWidth / 2
-      posRef.current = -offset
-      track.style.transform = `translateX(${-offset}px)`
+      // 居中偏移量：让第一张卡片（最新作品）位于视口中央
+      const offset = Math.max(0, viewportWidth / 2 - cardWidth / 2)
+
+      // 左右方向起始位置不同
+      // 向左滚动：从 offset 开始，向左移动 totalWidth 后复位
+      // 向右滚动：从 offset - totalWidth 开始（即第二组在中央），向右移动 totalWidth 后复位
+      const startPos = direction === 'left' ? offset : (offset - totalWidth)
+      const endPos = direction === 'left' ? (offset - totalWidth) : offset
+      const dir = direction === 'left' ? -1 : 1
+
+      posRef.current = startPos
+      track.style.transform = `translateX(${startPos}px)`
       track.style.opacity = '1'
       setReady(true)
 
-      // Start animation
-      const dir = direction === 'left' ? -1 : 1
       const pxPerMs = (totalWidth / speed / 1000) * dir
 
       const animate = (timestamp) => {
@@ -105,14 +101,16 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
         const delta = timestamp - lastTimeRef.current
         lastTimeRef.current = timestamp
 
-        if (!isPaused) {
+        if (!pausedRef.current) {
           posRef.current += pxPerMs * delta
-          // Loop: reset when we've scrolled one full set
-          if (dir < 0 && posRef.current <= -totalWidth - offset) {
-            posRef.current = -offset
-          } else if (dir > 0 && posRef.current >= -offset) {
-            posRef.current = -totalWidth - offset
+
+          // 循环复位
+          if (dir < 0 && posRef.current <= endPos) {
+            posRef.current = startPos
+          } else if (dir > 0 && posRef.current >= endPos) {
+            posRef.current = startPos
           }
+
           track.style.transform = `translateX(${posRef.current}px)`
         }
         animFrameRef.current = requestAnimationFrame(animate)
@@ -125,39 +123,24 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
     }
-  }, [direction, speed, isPaused, sorted.length])
+  }, [direction, speed, sorted.length]) // 注意：不依赖 isPaused
 
   return (
     <div
       className="marquee-row"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+      onMouseEnter={() => { pausedRef.current = true }}
+      onMouseLeave={() => { pausedRef.current = false }}
     >
       <div className="marquee-fade marquee-fade-left" />
       <div className="marquee-fade marquee-fade-right" />
 
-      <div
-        ref={trackRef}
-        className="marquee-track"
-        style={{ opacity: 0 }}
-      >
+      <div ref={trackRef} className="marquee-track" style={{ opacity: 0 }}>
         {doubled.map((p, i) => (
-          <div
-            key={p.title + '-m' + i}
-            className="marquee-card"
-            onClick={() => onCardClick(p)}
-          >
+          <div key={p.title + '-m' + i} className="marquee-card" onClick={() => onCardClick(p)}>
             <div className="marquee-card-inner">
               {p.type === 'video' ? (
                 <>
-                  <video
-                    muted
-                    loop
-                    playsInline
-                    preload="none"
-                    poster={p.img || undefined}
-                    className="marquee-card-media"
-                  >
+                  <video muted loop playsInline preload="none" poster={p.img || undefined} className="marquee-card-media">
                     <source src={p.video} type="video/mp4" />
                   </video>
                   <span className="marquee-card-badge">
@@ -167,14 +150,7 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
                   </span>
                 </>
               ) : (
-                <img
-                  className="marquee-card-media"
-                  src={p.thumb || p.img}
-                  alt={p.title}
-                  loading="lazy"
-                  decoding="async"
-                  fetchpriority={i < 6 ? 'high' : 'low'}
-                />
+                <img className="marquee-card-media" src={p.thumb || p.img} alt={p.title} loading="lazy" decoding="async" fetchpriority={i < 6 ? 'high' : 'low'} />
               )}
               <div className="marquee-card-gradient" />
               <div className="marquee-card-overlay">
@@ -187,8 +163,7 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
                   <span className="marquee-card-action">
                     {p.type === 'video' ? '播放' : '查看'}
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14" />
-                      <path d="m12 5 7 7-7 7" />
+                      <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
                     </svg>
                   </span>
                 </div>
@@ -210,19 +185,9 @@ export function HeroMarquee({ projects, onCardClick }) {
   return (
     <section className="hero-marquee-section">
       <div className="marquee-section">
-        <MarqueeRow
-          projects={projects}
-          direction="left"
-          speed={Math.max(20, projects.length * 4)}
-          onCardClick={onCardClick}
-        />
+        <MarqueeRow projects={projects} direction="left" speed={Math.max(20, projects.length * 4)} onCardClick={onCardClick} />
         {projects.length >= 3 && (
-          <MarqueeRow
-            projects={projects}
-            direction="right"
-            speed={Math.max(25, projects.length * 5)}
-            onCardClick={onCardClick}
-          />
+          <MarqueeRow projects={projects} direction="right" speed={Math.max(25, projects.length * 5)} onCardClick={onCardClick} />
         )}
       </div>
     </section>
@@ -230,7 +195,7 @@ export function HeroMarquee({ projects, onCardClick }) {
 }
 
 /* ==========================================================
-   网格画廊（参考 upma.cn/image-prompts）
+   网格画廊
    ========================================================== */
 export function WorksGrid({ projects, filter, setFilter, onCardClick }) {
   const ref = useRef(null)
@@ -239,10 +204,7 @@ export function WorksGrid({ projects, filter, setFilter, onCardClick }) {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true)
-          observer.disconnect()
-        }
+        if (entry.isIntersecting) { setVisible(true); observer.disconnect() }
       },
       { threshold: 0.1 }
     )
@@ -260,29 +222,20 @@ export function WorksGrid({ projects, filter, setFilter, onCardClick }) {
           <h2>作品集</h2>
           <p className="section-desc">精选 AI 视觉与设计作品</p>
         </div>
-
         <div className="filter-bar">
           {filterCategories.map(c => (
-            <button
-              key={c.key}
-              className={'filter-btn' + (filter === c.key ? ' active' : '')}
-              onClick={() => setFilter(c.key)}
-            >
+            <button key={c.key} className={'filter-btn' + (filter === c.key ? ' active' : '')} onClick={() => setFilter(c.key)}>
               {c.label}
             </button>
           ))}
         </div>
-
         <div className={'gallery-grid' + (visible ? ' visible' : '')}>
           {filtered.map((p, i) => (
             <WorkCard key={p.title + '-g' + i} project={p} onClick={onCardClick} />
           ))}
         </div>
-
         {filtered.length === 0 && (
-          <div className="gallery-empty">
-            <p>该分类暂无作品</p>
-          </div>
+          <div className="gallery-empty"><p>该分类暂无作品</p></div>
         )}
       </div>
     </section>
