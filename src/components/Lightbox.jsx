@@ -153,7 +153,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
             <div className="lightbox-video-wrapper">
               {/* 海报图 — 始终显示，播放后淡出 */}
               {/*
-                修复：pointer-events: none 让海报不阻挡视频原生控件的交互
+                pointer-events: none 让海报不阻挡视频原生控件的交互
                 海报只是视觉装饰，不需要接收任何鼠标/触摸事件
               */}
               <img
@@ -170,27 +170,25 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
                   opacity: videoState === 'playing' ? 0 : 1,
                   transition: 'opacity 0.5s ease',
                   zIndex: 1,
-                  pointerEvents: 'none', // ⭐ 关键修复：不阻挡视频控件
+                  pointerEvents: 'none', // ⭐ 不阻挡视频控件交互
                 }}
               />
 
               {/*
-                修复：controls 始终开启，不再条件渲染
-                海报（z-index:1）覆盖在视频上方，播放前隐藏控件
-                播放后海报淡出（opacity:0），控件自然可见并可交互
+                controls 在非 poster 状态下才开启，避免浏览器原生控件
+                在鼠标悬停时干扰自定义海报的显示
               */}
               <video
                 ref={videoRef}
                 className="lightbox-video"
                 src={project.video}
-                controls
+                controls={videoState !== 'poster'}
                 playsInline
                 preload="metadata"
                 poster={project.img}
                 onCanPlay={handleCanPlay}
                 onError={handleError}
                 onProgress={handleProgress}
-                style={{ zIndex: 2 }}
               />
 
               {/* 播放按钮 — 只在海报状态显示 */}
