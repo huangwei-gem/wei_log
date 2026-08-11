@@ -36,10 +36,7 @@ function WorkCard({ project, onClick }) {
           />
         )}
 
-        {/* 底部渐变 */}
         <div className="work-card-gradient" />
-
-        {/* 悬浮覆盖层 */}
         <div className="work-card-overlay">
           <div className="work-card-bar" />
           <div className="work-card-overlay-content">
@@ -62,42 +59,73 @@ function WorkCard({ project, onClick }) {
 }
 
 /* ==========================================================
-   轮播行（首页展示用）
+   轮播行（首页展示用）— JS 驱动动画，支持初始居中
    ========================================================== */
 function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
   const [isPaused, setIsPaused] = useState(false)
   const trackRef = useRef(null)
-  const [initialOffset, setInitialOffset] = useState(0)
+  const posRef = useRef(0)
+  const animFrameRef = useRef(null)
+  const lastTimeRef = useRef(0)
   const [ready, setReady] = useState(false)
-  const animName = direction === 'left' ? 'scroll-left' : 'scroll-right'
 
-  // Calculate initial offset to center the first (newest) item
-  useEffect(() => {
-    if (!trackRef.current) return
-    const track = trackRef.current
-    // Wait for layout
-    requestAnimationFrame(() => {
-      const firstCard = track.querySelector('.marquee-card')
-      if (firstCard) {
-        const cardWidth = firstCard.offsetWidth
-        const gap = 16 // margin-right from CSS
-        const viewportWidth = window.innerWidth
-        // Center the first card: offset = viewportWidth/2 - cardWidth/2
-        // But we need to offset from the start of the doubled array
-        // The first card is at position 0, we want it at viewportWidth/2 - cardWidth/2
-        const offset = viewportWidth / 2 - cardWidth / 2
-        setInitialOffset(offset)
-      }
-      setReady(true)
-    })
-  }, [])
-
-  // Sort projects by date for consistent ordering (newest first)
+  // Sort by date descending (newest first)
   const sorted = [...projects].sort((a, b) => {
     if (a.date && b.date) return b.date.localeCompare(a.date)
     return 0
   })
   const doubled = [...sorted, ...sorted]
+
+  // Initialize position and start animation
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track) return
+
+    const raf = requestAnimationFrame(() => {
+      const firstCard = track.querySelector('.marquee-card')
+      if (!firstCard) { setReady(true); return }
+
+      const cardWidth = firstCard.offsetWidth + 16 // card + gap
+      const viewportWidth = window.innerWidth
+      const totalWidth = cardWidth * sorted.length
+
+      // Calculate offset to center the first (newest) card
+      const offset = viewportWidth / 2 - cardWidth / 2
+      posRef.current = -offset
+      track.style.transform = `translateX(${-offset}px)`
+      track.style.opacity = '1'
+      setReady(true)
+
+      // Start animation
+      const dir = direction === 'left' ? -1 : 1
+      const pxPerMs = (totalWidth / speed / 1000) * dir
+
+      const animate = (timestamp) => {
+        if (!lastTimeRef.current) lastTimeRef.current = timestamp
+        const delta = timestamp - lastTimeRef.current
+        lastTimeRef.current = timestamp
+
+        if (!isPaused) {
+          posRef.current += pxPerMs * delta
+          // Loop: reset when we've scrolled one full set
+          if (dir < 0 && posRef.current <= -totalWidth - offset) {
+            posRef.current = -offset
+          } else if (dir > 0 && posRef.current >= -offset) {
+            posRef.current = -totalWidth - offset
+          }
+          track.style.transform = `translateX(${posRef.current}px)`
+        }
+        animFrameRef.current = requestAnimationFrame(animate)
+      }
+
+      lastTimeRef.current = 0
+      animFrameRef.current = requestAnimationFrame(animate)
+    })
+
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+    }
+  }, [direction, speed, isPaused, sorted.length])
 
   return (
     <div
@@ -111,13 +139,7 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
       <div
         ref={trackRef}
         className="marquee-track"
-        style={{
-          animationName: ready ? animName : 'none',
-          animationDuration: `${speed}s`,
-          animationPlayState: isPaused ? 'paused' : 'running',
-          transform: ready ? undefined : `translateX(${initialOffset}px)`,
-          opacity: ready ? 1 : 0,
-        }}
+        style={{ opacity: 0 }}
       >
         {doubled.map((p, i) => (
           <div
