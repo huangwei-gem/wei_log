@@ -76,6 +76,24 @@ npm run scan
 | **CSS3** | 纯 CSS 样式（无第三方 UI 库） |
 | **Cloudflare Pages** | 静态站点部署 |
 
+
+## 一键脚本（英文界面）
+
+不想记命令？直接用这两个脚本（双击运行）：
+
+| 脚本 | 作用 |
+|------|------|
+| **`publish.cmd`** | 一键发布：扫描作品 → 构建 → 提交 → 推送 → 自动部署上线 |
+| **`start-dev.cmd`** | 一键启动本地开发服务器 |
+
+`publish.cmd` 会执行：
+1. `npm run scan -- --english`（扫描作品文件夹，英文输出）
+2. `npm run build`（构建生产版本）
+3. `git add` + `git commit`（有改动才提交）
+4. `git push`（推送到 GitHub，Cloudflare Pages 自动部署）
+
+> 日常流程：把新作品文件放进 `public/portfolios/<分类>/` → 双击 `publish.cmd` → 等 1-2 分钟即可上线。
+
 ## 本地开发
 
 ```bash
