@@ -1,4 +1,5 @@
 import { projects, filterCategories } from '../data.js'
+import LazyVideo from './LazyVideo.jsx'
 import { useState, useEffect, useRef } from 'react'
 
 /* ==========================================================
@@ -12,16 +13,11 @@ function WorkCard({ project, onClick }) {
       <div className="work-card-inner">
         {isVideo ? (
           <>
-            <video
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              poster={project.img || undefined}
-              className="work-card-media"
-            >
-              <source src={project.video} type="video/mp4" />
-            </video>
+            <LazyVideo
+            poster={project.img}
+            videoSrc={project.video}
+            className="work-card-media"
+          />
             <span className="work-card-badge">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M8 5v14l11-7z" />

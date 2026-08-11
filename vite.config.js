@@ -7,4 +7,14 @@ const base = process.env.CF_PAGES ? '/' : (process.env.GITHUB_ACTIONS ? '/wei_lo
 export default defineConfig({
   plugins: [react()],
   base,
+  build: {
+    rollupOptions: {
+      output: {
+        // 将第三方依赖（React 等）拆分为独立 chunk，利用浏览器缓存
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
 })

@@ -1,12 +1,15 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import Navbar from './components/Navbar.jsx'
 import Hero from './components/Hero.jsx'
-import { HeroMarquee, WorksGrid } from './components/Works.jsx'
-import About from './components/About.jsx'
-import Contact from './components/Contact.jsx'
-import Footer from './components/Footer.jsx'
-import Lightbox from './components/Lightbox.jsx'
 import { projects } from './data.js'
+
+// 懒加载以下折叠的组件 — 减少首屏 bundle 大小
+const HeroMarquee = lazy(() => import('./components/Works.jsx').then(m => ({ default: m.HeroMarquee })))
+const WorksGrid = lazy(() => import('./components/Works.jsx').then(m => ({ default: m.WorksGrid })))
+const About = lazy(() => import('./components/About.jsx'))
+const Contact = lazy(() => import('./components/Contact.jsx'))
+const Footer = lazy(() => import('./components/Footer.jsx'))
+const Lightbox = lazy(() => import('./components/Lightbox.jsx'))
 
 function useTheme() {
   const [theme, setTheme] = useState(() => {
@@ -87,32 +90,44 @@ export default function App() {
     <>
       <Navbar activeSection={activeSection} theme={theme} toggleTheme={toggleTheme} />
 
-      {/* 首页：Hero + 作品轮播展示 */}
+      {/* 首页：Hero + 作品轮播展示 (首屏立即加载) */}
       <Hero />
-      <HeroMarquee projects={projects} onCardClick={openLightbox} />
+      <Suspense fallback={<div className="section-loading" />}>
+        <HeroMarquee projects={projects} onCardClick={openLightbox} />
+      </Suspense>
 
       {/* 第二页：关于我 */}
-      <About />
+      <Suspense fallback={<div className="section-loading" />}>
+        <About />
+      </Suspense>
 
       {/* 作品集网格画廊 */}
-      <WorksGrid
-        projects={projects}
-        filter={filter}
-        setFilter={setFilter}
-        onCardClick={openLightbox}
-      />
+      <Suspense fallback={<div className="section-loading" />}>
+        <WorksGrid
+          projects={projects}
+          filter={filter}
+          setFilter={setFilter}
+          onCardClick={openLightbox}
+        />
+      </Suspense>
 
-      <Contact />
-      <Footer />
+      <Suspense fallback={<div className="section-loading" />}>
+        <Contact />
+      </Suspense>
+      <Suspense fallback={<div className="section-loading" />}>
+        <Footer />
+      </Suspense>
 
-      <Lightbox
-        project={lightboxProject}
-        onClose={closeLightbox}
-        onPrev={goPrev}
-        onNext={goNext}
-        hasPrev={hasPrev}
-        hasNext={hasNext}
-      />
+      <Suspense fallback={null}>
+        <Lightbox
+          project={lightboxProject}
+          onClose={closeLightbox}
+          onPrev={goPrev}
+          onNext={goNext}
+          hasPrev={hasPrev}
+          hasNext={hasNext}
+        />
+      </Suspense>
     </>
   )
 }
