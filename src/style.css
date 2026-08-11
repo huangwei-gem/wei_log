@@ -1576,3 +1576,119 @@ section {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
+
+/* ==========================================
+   视频 Lightbox 播放器
+   ========================================== */
+.lightbox-video-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  min-height: 300px;
+}
+
+.lightbox-video {
+  width: 100%;
+  height: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+.lightbox-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  z-index: 1;
+}
+
+/* 播放按钮 */
+.lightbox-play-btn {
+  position: absolute;
+  z-index: 5;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(255,255,255,0.2);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 40px rgba(0,0,0,0.5);
+}
+
+.lightbox-play-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.1);
+  box-shadow: 0 0 60px var(--accent-glow);
+}
+
+.lightbox-play-btn:active {
+  transform: scale(0.95);
+}
+
+.lightbox-play-btn svg {
+  width: 36px;
+  height: 36px;
+  margin-left: 4px;
+}
+
+/* 加载状态 */
+.lightbox-loading {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.5);
+  color: rgba(255,255,255,0.8);
+  font-size: 0.9rem;
+  gap: 12px;
+}
+
+.lightbox-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.15);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: lightbox-spin 0.8s linear infinite;
+}
+
+@keyframes lightbox-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 加载进度条 */
+.lightbox-progress-bar {
+  width: 200px;
+  height: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.lightbox-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* 视频加载失败时保留海报 */
+.lightbox-video-wrapper .lightbox-poster[style*="opacity: 0"] {
+  opacity: 0 !important;
+}
