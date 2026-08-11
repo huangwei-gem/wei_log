@@ -151,32 +151,9 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
         <div className="lightbox-media">
           {isVideo ? (
             <div className="lightbox-video-wrapper">
-              {/* 海报图 — 始终显示，播放后淡出 */}
               {/*
-                pointer-events: none 让海报不阻挡视频原生控件的交互
-                海报只是视觉装饰，不需要接收任何鼠标/触摸事件
-              */}
-              <img
-                className="lightbox-poster"
-                src={project.img}
-                alt={project.title}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  background: '#000',
-                  opacity: videoState === 'playing' ? 0 : 1,
-                  transition: 'opacity 0.5s ease',
-                  zIndex: 1,
-                  pointerEvents: 'none', // ⭐ 不阻挡视频控件交互
-                }}
-              />
-
-              {/*
-                controls 在非 poster 状态下才开启，避免浏览器原生控件
-                在鼠标悬停时干扰自定义海报的显示
+                使用 video 原生 poster 属性展示海报，浏览器自动管理
+                不再使用自定义海报 <img>，避免 z-index 遮挡干扰原生控件
               */}
               <video
                 ref={videoRef}

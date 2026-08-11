@@ -1597,17 +1597,6 @@ section {
   max-height: 80vh;
   object-fit: contain;
 }
-
-.lightbox-poster {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #000;
-  z-index: 1;
-}
-
 /* 播放按钮 */
 .lightbox-play-btn {
   position: absolute;
@@ -1688,7 +1677,3 @@ section {
   transition: width 0.3s ease;
 }
 
-/* 视频加载失败时保留海报 */
-.lightbox-video-wrapper .lightbox-poster[style*="opacity: 0"] {
-  opacity: 0 !important;
-}
