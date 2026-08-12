@@ -1,4 +1,7 @@
 # Cloudflare Pages Cache Headers
+# 注意：规则不能重叠，否则 Cloudflare 会把多个 Cache-Control 拼接成冲突值，
+# 导致边缘缓存失效、Range 请求(视频拖动/分段加载)不生效。
+
 # Static assets (JS/CSS/fonts) — 1 year + immutable
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
@@ -9,8 +12,4 @@
 
 # HTML — no cache, always check for updates
 /index.html
-  Cache-Control: public, max-age=0, must-revalidate
-
-# Other pages — no cache
-/*
   Cache-Control: public, max-age=0, must-revalidate
