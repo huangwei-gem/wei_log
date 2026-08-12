@@ -4,6 +4,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
   const [videoState, setVideoState] = useState('poster') // 'poster' | 'loading' | 'playing' | 'error'
   const videoRef = useRef(null)
   const [progress, setProgress] = useState(0)
+  const [videoSize, setVideoSize] = useState(null) // 视频真实宽高，用于贴合元素盒子
   const videoStateRef = useRef('poster')
 
   // 同步 videoState 到 ref，避免闭包过期
@@ -36,6 +37,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
     setVideoState('poster')
     videoStateRef.current = 'poster'
     setProgress(0)
+    setVideoSize(null)
   }, [project])
 
   // 键盘事件 + 滚动锁定 + 视频预加载
@@ -110,6 +112,14 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
     }
   }, [])
 
+  // 拿到视频真实宽高，用于让元素盒子贴合内容（原生控件紧跟内容，不留黑边）
+  const handleLoadedMetadata = useCallback(() => {
+    const v = videoRef.current
+    if (v && v.videoWidth > 0 && v.videoHeight > 0) {
+      setVideoSize({ w: v.videoWidth, h: v.videoHeight })
+    }
+  }, [])
+
   // 加载失败
   const handleError = useCallback(() => {
     setVideoState('error')
@@ -163,7 +173,14 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
                 playsInline
                 preload="metadata"
                 poster={project.img}
+                style={videoState === 'playing' && videoSize ? {
+                  width: '100%',
+                  height: 'auto',
+                  aspectRatio: `${videoSize.w} / ${videoSize.h}`,
+                  maxHeight: '80vh',
+                } : undefined}
                 onClick={videoState === 'poster' ? handlePlay : undefined}
+                onLoadedMetadata={handleLoadedMetadata}
                 onCanPlay={handleCanPlay}
                 onError={handleError}
                 onProgress={handleProgress}
