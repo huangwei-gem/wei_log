@@ -157,12 +157,13 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
               */}
               <video
                 ref={videoRef}
-                className="lightbox-video"
+                className={`lightbox-video ${videoState === 'poster' ? 'poster-mode' : ''}`}
                 src={project.video}
                 controls={videoState !== 'poster'}
                 playsInline
                 preload="metadata"
                 poster={project.img}
+                onClick={videoState === 'poster' ? handlePlay : undefined}
                 onCanPlay={handleCanPlay}
                 onError={handleError}
                 onProgress={handleProgress}
@@ -217,3 +218,4 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
     </div>
   )
 }
+

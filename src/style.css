@@ -1595,6 +1595,10 @@ section {
   max-height: 80vh;
   object-fit: contain;
 }
+/* 海报状态：整块视频区可点击播放，显示手型光标 */
+.lightbox-video.poster-mode {
+  cursor: pointer;
+}
 /* 播放按钮 */
 .lightbox-play-btn {
   position: absolute;
