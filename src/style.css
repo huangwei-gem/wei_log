@@ -721,8 +721,6 @@ section {
   inset: 0;
   z-index: 2000;
   background: var(--overlay-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -730,8 +728,8 @@ section {
 }
 
 @keyframes lightbox-enter {
-  from { opacity: 0; backdrop-filter: blur(0); }
-  to { opacity: 1; backdrop-filter: blur(20px); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .lightbox-content {
@@ -746,7 +744,7 @@ section {
 
 @keyframes lightbox-content-enter {
   from { opacity: 0; transform: scale(0.95) translateY(20px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  to { opacity: 1; }
 }
 
 .lightbox-media {
@@ -1677,224 +1675,3 @@ section {
   transition: width 0.3s ease;
 }
 
-
-/* ==========================================
-   自定义视频控件（替代浏览器原生 controls）
-   ========================================== */
-.video-controls {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 5;
-  padding: 28px 14px 10px;
-  background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.65) 100%);
-  opacity: 1;
-  pointer-events: auto;
-  transition: opacity 0.3s ease;
-}
-
-.video-controls.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* 进度条区域 */
-.video-controls-progress {
-  position: relative;
-  width: 100%;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  margin-bottom: 2px;
-}
-
-/* 缓冲进度条 */
-.video-buffered {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 4px;
-  border-radius: 4px;
-  background: rgba(255,255,255,0.3);
-  pointer-events: none;
-}
-
-/* 进度条滑块 */
-.video-seek {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  height: 18px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  outline: none;
-  margin: 0;
-  padding: 0;
-}
-
-/* 进度条轨道（通过 JS 动态设置 background 渐变显示已播放部分） */
-.video-seek::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 4px;
-}
-
-.video-seek::-moz-range-track {
-  height: 4px;
-  border-radius: 4px;
-  background: transparent;
-}
-
-.video-seek::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -5px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid var(--accent);
-  cursor: pointer;
-  box-shadow: 0 0 6px rgba(0,0,0,0.4);
-  transition: transform 0.15s ease;
-}
-
-.video-seek::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-}
-
-.video-seek::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid var(--accent);
-  cursor: pointer;
-}
-
-.video-seek:active::-webkit-slider-thumb {
-  transform: scale(1.3);
-}
-
-/* 按钮行 */
-.video-controls-buttons {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #fff;
-  user-select: none;
-}
-
-.video-btn {
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.9;
-  border-radius: 6px;
-  transition: opacity 0.2s ease, background 0.2s ease;
-}
-
-.video-btn:hover {
-  opacity: 1;
-  background: rgba(255,255,255,0.15);
-}
-
-.video-btn:active {
-  transform: scale(0.92);
-}
-
-.video-time {
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-  color: rgba(255,255,255,0.9);
-  letter-spacing: 0.3px;
-}
-
-.video-controls-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* 音量滑块 */
-.video-volume {
-  width: 64px;
-  height: 18px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  outline: none;
-  margin: 0;
-  padding: 0;
-}
-
-.video-volume::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 4px;
-}
-
-.video-volume::-moz-range-track {
-  height: 4px;
-  border-radius: 4px;
-}
-
-.video-volume::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  margin-top: -4px;
-  border-radius: 50%;
-  background: #fff;
-  border: none;
-  cursor: pointer;
-}
-
-.video-volume::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #fff;
-  border: none;
-  cursor: pointer;
-}
-
-/* 全屏模式 */
-.lightbox-video-wrapper.fullscreen {
-  width: 100vw !important;
-  height: 100vh !important;
-  max-height: none !important;
-  background: #000;
-  border-radius: 0;
-}
-
-.lightbox-video-wrapper.fullscreen .lightbox-video {
-  max-height: 100vh;
-}
-
-/* 小屏幕适配 */
-@media (max-width: 480px) {
-  .video-volume {
-    width: 40px;
-  }
-
-  .video-time {
-    font-size: 0.7rem;
-  }
-
-  .video-controls {
-    padding: 20px 10px 8px;
-  }
-}
