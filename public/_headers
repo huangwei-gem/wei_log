@@ -7,8 +7,9 @@
   Cache-Control: public, max-age=31536000, immutable
 
 # Portfolio images and videos — 1 year
+# 注意：不能加 immutable，否则 Cloudflare 不处理 Range 请求（视频无法拖动进度）
 /portfolios/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=31536000
 
 # HTML — no cache, always check for updates
 /index.html
