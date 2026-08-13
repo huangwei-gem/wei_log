@@ -82,11 +82,11 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
       // 居中偏移量：让第一张卡片（最新作品）位于视口中央
       const offset = Math.max(0, viewportWidth / 2 - cardWidth / 2)
 
-      // 左右方向起始位置不同
-      // 向左滚动：从 offset 开始，向左移动 totalWidth 后复位
-      // 向右滚动：从 offset - totalWidth 开始（即第二组在中央），向右移动 totalWidth 后复位
-      const startPos = direction === 'left' ? offset : (offset - totalWidth)
-      const endPos = direction === 'left' ? (offset - totalWidth) : offset
+      // 两个方向都从 offset - totalWidth 开始（第二组在中央），
+      // 这样行首即满铺，且最新作品（第二组的第一张）位于视口中央
+      // 向左滚动：向左移动 totalWidth 后复位；向右滚动：向右移动 totalWidth 后复位
+      const startPos = offset - totalWidth
+      const endPos = direction === 'left' ? (offset - 2 * totalWidth) : offset
       const dir = direction === 'left' ? -1 : 1
 
       posRef.current = startPos
