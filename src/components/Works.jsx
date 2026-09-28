@@ -177,17 +177,16 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
             onKeyDown={activate(onCardClick, p)}
           >
             <div className="marquee-card-inner">
-              {/* 轮播只是装饰性滚动，挂 32 个 <video> 既拖慢首屏，
-                  又因 preload="none" 不加载 poster 而显示空白。统一用缩略图 + 播放角标，
-                  真正播放交给灯箱。 */}
-              {/* 轮播靠 translateX 位移，元素布局位置始终不变，loading="lazy" 不会在卡片
-                  滑入视口时重新触发，实测会留一排空白。缩略图总共 19 个 URL / 约 135KB，
-                  76 张卡复用同一批请求，全量直载更便宜也更可靠。 */}
+              {/* 轮播只是装饰性滚动，挂 32 个 <video> 既拖慢首屏，又因 preload="none"
+                  不加载 poster 而显示空白；统一用缩略图，播放交给灯箱。
+                  轨道靠 translateX 位移，布局位置不变，loading="lazy" 不会在卡片滑入
+                  视口时重新触发，所以全部直载，改用 fetchpriority 让首屏可见的那几张先下。 */}
               <img
                 className="marquee-card-media"
                 src={asset(p.thumb || p.img)}
                 alt={p.title}
                 decoding="async"
+                fetchpriority={i >= sorted.length && i < sorted.length + 10 ? 'high' : 'low'}
               />
               {p.type === 'video' && (
                 <span className="marquee-card-badge">
