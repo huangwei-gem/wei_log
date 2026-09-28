@@ -93,9 +93,6 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
     return 0
   })
   const doubled = [...sorted, ...sorted]
-  // 轨道初始被平移到「第二份」的开头居中显示，所以首屏可见的是这一段，
-  // 它们要 eager 加载，其余交给懒加载
-  const eagerFrom = sorted.length
 
   // Initialize position once and start animation
   useEffect(() => {
@@ -183,13 +180,14 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
               {/* 轮播只是装饰性滚动，挂 32 个 <video> 既拖慢首屏，
                   又因 preload="none" 不加载 poster 而显示空白。统一用缩略图 + 播放角标，
                   真正播放交给灯箱。 */}
+              {/* 轮播靠 translateX 位移，元素布局位置始终不变，loading="lazy" 不会在卡片
+                  滑入视口时重新触发，实测会留一排空白。缩略图总共 19 个 URL / 约 135KB，
+                  76 张卡复用同一批请求，全量直载更便宜也更可靠。 */}
               <img
                 className="marquee-card-media"
                 src={asset(p.thumb || p.img)}
                 alt={p.title}
-                loading={eagerFrom <= i && i < eagerFrom + 8 ? 'eager' : 'lazy'}
                 decoding="async"
-                fetchpriority={eagerFrom <= i && i < eagerFrom + 8 ? 'high' : 'auto'}
               />
               {p.type === 'video' && (
                 <span className="marquee-card-badge">
