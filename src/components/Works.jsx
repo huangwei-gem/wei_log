@@ -93,6 +93,9 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
     return 0
   })
   const doubled = [...sorted, ...sorted]
+  // 轨道初始被平移到「第二份」的开头居中显示，所以首屏可见的是这一段，
+  // 它们要 eager 加载，其余交给懒加载
+  const eagerFrom = sorted.length
 
   // Initialize position once and start animation
   useEffect(() => {
@@ -177,19 +180,23 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
             onKeyDown={activate(onCardClick, p)}
           >
             <div className="marquee-card-inner">
-              {p.type === 'video' ? (
-                <>
-                  <video muted loop playsInline preload="none" poster={asset(p.img) || undefined} className="marquee-card-media">
-                    <source src={asset(p.video)} type="video/mp4" />
-                  </video>
-                  <span className="marquee-card-badge">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </span>
-                </>
-              ) : (
-                <img className="marquee-card-media" src={asset(p.thumb || p.img)} alt={p.title} loading="lazy" decoding="async" fetchpriority={i < 6 ? 'high' : 'low'} />
+              {/* 轮播只是装饰性滚动，挂 32 个 <video> 既拖慢首屏，
+                  又因 preload="none" 不加载 poster 而显示空白。统一用缩略图 + 播放角标，
+                  真正播放交给灯箱。 */}
+              <img
+                className="marquee-card-media"
+                src={asset(p.thumb || p.img)}
+                alt={p.title}
+                loading={eagerFrom <= i && i < eagerFrom + 8 ? 'eager' : 'lazy'}
+                decoding="async"
+                fetchpriority={eagerFrom <= i && i < eagerFrom + 8 ? 'high' : 'auto'}
+              />
+              {p.type === 'video' && (
+                <span className="marquee-card-badge">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
               )}
               <div className="marquee-card-gradient" />
               <div className="marquee-card-overlay">

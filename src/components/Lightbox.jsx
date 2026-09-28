@@ -41,7 +41,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
     setVideoSize(null)
   }, [project])
 
-  // 键盘事件 + 滚动锁定 + 视频预加载
+  // 键盘事件 + 滚动锁定 + 焦点管理
   useEffect(() => {
     if (!project) return
 
@@ -50,27 +50,23 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
     document.body.style.overflow = 'hidden'
     document.body.style.touchAction = 'none'
 
-    // 预加载视频资源
-    if (project.type === 'video' && project.video) {
-      const link = document.createElement('link')
-      link.rel = 'preload'
-      link.as = 'video'
-      link.href = asset(project.video)
-      document.head.appendChild(link)
-
-      return () => {
-        document.removeEventListener('keydown', handler)
-        document.body.style.overflow = ''
-        document.body.style.touchAction = ''
-        if (link.parentNode) link.parentNode.removeChild(link)
-      }
-    }
+    // 打开时把焦点移进对话框，关闭时还给触发它的卡片
+    const opener = document.activeElement
+    const focusTimer = setTimeout(() => {
+      document.querySelector('.lightbox-close')?.focus()
+    }, 0)
 
     return () => {
+      clearTimeout(focusTimer)
       document.removeEventListener('keydown', handler)
       document.body.style.overflow = ''
       document.body.style.touchAction = ''
+      if (opener instanceof HTMLElement) opener.focus()
     }
+
+    // 不预加载视频本体：原实现每次打开（含方向键翻页）都注入
+    // <link rel=preload as=video>，用户还没点播放就拉完整视频。
+    // 封面靠 <video poster>，它需要 preload="metadata" 才会稳定渲染。
   }, [project])
 
   // 点击播放
@@ -78,15 +74,15 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
     setVideoState('loading')
     videoStateRef.current = 'loading'
 
-    // 下一帧开始加载，让 UI 先渲染 loading 状态
-    requestAnimationFrame(() => {
-      const video = videoRef.current
-      if (!video) return
+    const video = videoRef.current
+    if (!video) return
 
-      video.load() // 开始加载
-      video.play()
+    // 不调 video.load()：preload="metadata" 下元素往往已经 readyState>=3，
+    // load() 会丢弃已缓冲的数据并重新发起请求，用户点完播放要再等一次下载。
+    const started = video.play()
+    if (started) {
+      started
         .then(() => {
-          // 播放成功
           if (videoStateRef.current === 'loading') {
             setVideoState('playing')
             videoStateRef.current = 'playing'
@@ -102,7 +98,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
             videoStateRef.current = 'error'
           }
         })
-    })
+    }
   }, [])
 
   // 视频可播放时自动切换到 playing
@@ -143,7 +139,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
 
   return (
     <div className="lightbox-overlay" onClick={onClose}>
-      <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+      <div className="lightbox-content" role="dialog" aria-modal="true" aria-label={project.title} onClick={(e) => e.stopPropagation()}>
         <button className="lightbox-btn lightbox-close" onClick={onClose} aria-label="关闭">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
@@ -167,6 +163,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
                 不再使用自定义海报 <img>，避免 z-index 遮挡干扰原生控件
               */}
               <video
+                key={project.video}
                 ref={videoRef}
                 className={`lightbox-video ${videoState === 'poster' ? 'poster-mode' : ''}`}
                 src={asset(project.video)}
