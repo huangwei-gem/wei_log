@@ -70,6 +70,14 @@ function isPoster(fileName) {
   return POSTER_SUFFIXES.some((s) => base.endsWith(s))
 }
 
+// 海报文件名去掉 _poster / -cover 等后缀 = 对应视频的文件名，
+// 这样按视频名生成的缩略图才能被 scanFolder 里的 .thumbnails/<视频base>.webp 探测命中
+function stripPosterSuffix(baseName) {
+  const lower = baseName.toLowerCase()
+  const suffix = POSTER_SUFFIXES.find((s) => lower.endsWith(s))
+  return suffix ? baseName.slice(0, baseName.length - suffix.length) : baseName
+}
+
 function findPosterForVideo(videoName, files) {
   const videoBase = path.basename(videoName, path.extname(videoName)).toLowerCase()
   const exact = files.find(
@@ -180,9 +188,9 @@ async function generateThumbnail(filePath) {
   const ext = path.extname(filePath).toLowerCase()
   if (!IMAGE_EXT.has(ext)) return
 
-  const base = path.basename(filePath, ext)
-  // Skip poster images (they are already small)
-  if (isPoster(filePath)) return
+  // 海报也要出缩略图：视频卡片原先直接加载 100–200KB 的全尺寸 JPG 封面，
+  // 而图片卡片用的是 25–44KB 的 webp。缩略图按对应视频的文件名落盘。
+  const base = stripPosterSuffix(path.basename(filePath, ext))
 
   const sizeBefore = fs.statSync(filePath).size
   const thumbName = base + ".webp"
@@ -278,6 +286,122 @@ function generateMissingPosters() {
   }
 }
 
+// ---------- 分类文件夹列举（多处共用） ----------
+
+function listCategoryFolders() {
+  return fs.readdirSync(portfoliosDir).filter((name) => {
+    const p = path.join(portfoliosDir, name)
+    return fs.statSync(p).isDirectory() && name !== ".thumbnails"
+  })
+}
+
+// ---------- 封面质量（成片开头常有淡入，取首帧会得到纯黑封面） ----------
+
+const MIN_POSTER_LUMA = 16
+
+function probeDuration(filePath) {
+  try {
+    const out = execSync(
+      `ffprobe -v error -show_entries format=duration -of csv=p=0 "${filePath}"`,
+      { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] },
+    ).trim()
+    const d = parseFloat(out)
+    return Number.isFinite(d) && d > 0 ? d : 0
+  } catch {
+    return 0
+  }
+}
+
+async function meanLuma(imgPath) {
+  try {
+    const s = await sharp(imgPath).stats()
+    // stats().channels 是对象数组，取各自的 mean 再平均
+    const means = s.channels.map((c) => c.mean)
+    return means.reduce((a, b) => a + b, 0) / means.length
+  } catch {
+    return 255 // 读不动就当没问题，别把正常流程卡住
+  }
+}
+
+async function repairDarkPosters() {
+  const repaired = []
+  for (const folder of listCategoryFolders()) {
+    const folderPath = path.join(portfoliosDir, folder)
+    const files = fs.readdirSync(folderPath)
+    const videos = files.filter((f) => VIDEO_EXT.has(path.extname(f).toLowerCase()))
+    for (const v of videos) {
+      const poster = findPosterForVideo(v, files)
+      if (!poster) continue
+      const posterPath = path.join(folderPath, poster)
+      if ((await meanLuma(posterPath)) >= MIN_POSTER_LUMA) continue
+
+      const dur = probeDuration(path.join(folderPath, v))
+      if (!dur) continue
+
+      // 先写到临时文件，只有确实变亮才替换 —— 判定失误时不能把好封面毁掉
+      const tmpPath = posterPath + ".repair.tmp"
+      let ok = false
+      for (const frac of [0.4, 0.7, 0.15, 0.9]) {
+        try {
+          execSync(
+            `ffmpeg -y -v error -i "${path.join(folderPath, v)}" -ss ${(dur * frac).toFixed(2)} -frames:v 1 -q:v 3 "${tmpPath}"`,
+            { stdio: "ignore" },
+          )
+        } catch {
+          continue
+        }
+        if ((await meanLuma(tmpPath)) >= MIN_POSTER_LUMA) {
+          fs.renameSync(tmpPath, posterPath)
+          ok = true
+          break
+        }
+      }
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath)
+
+      if (ok) repaired.push(`${folder}/${poster}`)
+      else
+        console.warn(
+          t(
+            `  WARN: ${folder}/${poster} is still too dark after re-sampling — pick a cover manually`,
+            `  WARN: ${folder}/${poster} 换点取样后仍偏暗，请手动指定封面`,
+          ),
+        )
+    }
+  }
+  if (repaired.length) {
+    console.log(t("--- Re-sampled dark video covers ---", "--- 修正过暗的视频封面 ---"))
+    for (const r of repaired) console.log(`  ${t("Fixed", "已修正")} ${r}`)
+  }
+}
+
+// ---------- 体积守卫（Cloudflare Pages 单文件上限 25 MiB） ----------
+
+const CF_FILE_LIMIT_MIB = 25
+
+function checkFileSizeLimit() {
+  const over = []
+  for (const folder of listCategoryFolders()) {
+    const folderPath = path.join(portfoliosDir, folder)
+    for (const f of fs.readdirSync(folderPath)) {
+      const fp = path.join(folderPath, f)
+      if (!fs.statSync(fp).isFile()) continue
+      const mib = fs.statSync(fp).size / 1048576
+      if (mib > CF_FILE_LIMIT_MIB) over.push({ name: `${folder}/${f}`, mib })
+    }
+  }
+  if (over.length) {
+    console.log(t("--- File size check ---", "--- 文件体积检查 ---"))
+    for (const o of over)
+      console.error(
+        t(
+          `  X ${o.name} = ${o.mib.toFixed(1)} MiB, over the ${CF_FILE_LIMIT_MIB} MiB Cloudflare Pages per-file cap. Re-encode it or the deploy will fail.`,
+          `  X ${o.name} = ${o.mib.toFixed(1)} MiB，超过 Cloudflare Pages 的 ${CF_FILE_LIMIT_MIB} MiB 单文件上限，不重压部署会失败。`,
+        ),
+      )
+  }
+  return over
+}
+
 // ---------- Scanner ----------
 
 function scanFolder(folderName) {
@@ -368,15 +492,17 @@ function buildDataJs(projects) {
 }
 
 function buildCategories(projects) {
-  const seen = new Set()
+  const present = new Set(projects.map((p) => p.cat))
   const cats = [{ key: "all", label: "全部" }]
-  for (const p of projects) {
-    if (!seen.has(p.cat)) {
-      seen.add(p.cat)
-      const cfg = Object.values(FOLDER_CATEGORIES).find((c) => c.key === p.cat)
-      cats.push({ key: p.cat, label: cfg ? cfg.label : p.cat })
+  // 按 FOLDER_CATEGORIES 的声明顺序排，而不是按作品日期先后 —— 后者会让分类栏
+  // 随着新作品的加入不断换顺序
+  for (const cfg of Object.values(FOLDER_CATEGORIES)) {
+    if (present.has(cfg.key)) {
+      cats.push({ key: cfg.key, label: cfg.label })
+      present.delete(cfg.key)
     }
   }
+  for (const key of present) cats.push({ key, label: key })
   return cats
 }
 
@@ -391,12 +517,19 @@ async function main() {
   // Step 1: Compress images
   await compressAllImages()
 
-  // Step 2: Generate thumbnails
-  await generateAllThumbnails()
-
-  // Step 3: Auto-generate missing video posters
+  // Step 2: Video posters must exist before thumbnails — generateAllThumbnails now
+  // derives each video's card thumbnail from its poster
   console.log(t("--- Generating video posters ---", "--- 生成视频封面 ---"))
   generateMissingPosters()
+
+  // Step 3: Replace covers sampled from a fade-in (they come out pure black)
+  await repairDarkPosters()
+
+  // Step 4: Generate thumbnails
+  await generateAllThumbnails()
+
+  // Step 5: Fail loudly on files Cloudflare Pages cannot serve
+  checkFileSizeLimit()
 
   // Step 4: Scan folders and build data
   const knownOrder = Object.keys(FOLDER_CATEGORIES)

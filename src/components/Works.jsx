@@ -1,7 +1,17 @@
-import { projects, filterCategories } from '../data.js'
+import { filterCategories } from '../data.js'
 import { asset } from '../asset.js'
 import LazyVideo from './LazyVideo.jsx'
 import { useState, useEffect, useRef } from 'react'
+
+// 作品卡片是带 onClick 的 div，键盘既聚焦不了也激活不了
+function activate(onClick, project) {
+  return (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onClick(project)
+    }
+  }
+}
 
 /* ==========================================================
    网格画廊卡片
@@ -10,7 +20,14 @@ function WorkCard({ project, onClick }) {
   const isVideo = project.type === 'video'
 
   return (
-    <div className="work-card" onClick={() => onClick(project)}>
+    <div
+      className="work-card"
+      role="button"
+      tabIndex={0}
+      aria-label={`${project.title}，${isVideo ? '播放视频' : '查看图片'}`}
+      onClick={() => onClick(project)}
+      onKeyDown={activate(onClick, project)}
+    >
       <div className="work-card-inner">
         {isVideo ? (
           <>
@@ -53,9 +70,22 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
   const posRef = useRef(0)
   const animFrameRef = useRef(null)
   const lastTimeRef = useRef(0)
-  const pausedRef = useRef(false)
-  const [ready, setReady] = useState(false)
+  const rowRef = useRef(null)
+  const hoverRef = useRef(false)
+  const inViewRef = useRef(true)
   const initializedRef = useRef(false)
+
+  // 滚出视口后不再写 transform —— 两行轮播没有理由在看不见的时候持续改样式
+  useEffect(() => {
+    const el = rowRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { inViewRef.current = entry.isIntersecting },
+      { rootMargin: '100px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // Sort by date descending (newest first)
   const sorted = [...projects].sort((a, b) => {
@@ -74,7 +104,7 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
 
     const raf = requestAnimationFrame(() => {
       const firstCard = track.querySelector('.marquee-card')
-      if (!firstCard) { setReady(true); return }
+      if (!firstCard) return
 
       const cardWidth = firstCard.offsetWidth + 16 // card + gap
       const viewportWidth = window.innerWidth
@@ -93,7 +123,6 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
       posRef.current = startPos
       track.style.transform = `translateX(${startPos}px)`
       track.style.opacity = '1'
-      setReady(true)
 
       const pxPerMs = (totalWidth / speed / 1000) * dir
 
@@ -102,7 +131,7 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
         const delta = timestamp - lastTimeRef.current
         lastTimeRef.current = timestamp
 
-        if (!pausedRef.current) {
+        if (inViewRef.current && !hoverRef.current) {
           posRef.current += pxPerMs * delta
 
           // 循环复位
@@ -124,20 +153,29 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
     }
-  }, [direction, speed, sorted.length]) // 注意：不依赖 isPaused
+  }, [direction, speed, sorted.length])
 
   return (
     <div
+      ref={rowRef}
       className="marquee-row"
-      onMouseEnter={() => { pausedRef.current = true }}
-      onMouseLeave={() => { pausedRef.current = false }}
+      onMouseEnter={() => { hoverRef.current = true }}
+      onMouseLeave={() => { hoverRef.current = false }}
     >
       <div className="marquee-fade marquee-fade-left" />
       <div className="marquee-fade marquee-fade-right" />
 
       <div ref={trackRef} className="marquee-track" style={{ opacity: 0 }}>
         {doubled.map((p, i) => (
-          <div key={p.title + '-m' + i} className="marquee-card" onClick={() => onCardClick(p)}>
+          <div
+            key={p.title + '-m' + i}
+            className="marquee-card"
+            role="button"
+            tabIndex={0}
+            aria-label={`${p.title}，${p.type === 'video' ? '播放视频' : '查看图片'}`}
+            onClick={() => onCardClick(p)}
+            onKeyDown={activate(onCardClick, p)}
+          >
             <div className="marquee-card-inner">
               {p.type === 'video' ? (
                 <>

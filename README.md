@@ -6,7 +6,7 @@
 
 ## 功能特性
 
-- 🎨 **暗色 / 亮色双主题** — 红色强调色，一键切换
+- 🎨 **暗色 / 亮色双主题** — 绿色强调色（`--accent`），一键切换
 - 📱 **响应式设计** — 适配桌面端与移动端
 - 🖼️ **作品展示** — 支持图片与视频作品，点击放大预览，不跳转外部页面
 - 🔍 **分类筛选** — 按 AI短剧 / AI视频 / 电商 / 生活 分类浏览
@@ -19,9 +19,10 @@
 | 分类 | 数量 | 说明 |
 |------|------|------|
 | AI短剧 | 7 件 | 角色设计图、故事板 |
-| AI视频 | 2 件 | AI 生成短片 |
+| AI视频 | 7 件 | AI 生成短片、歌词 MV、风光宣传片 |
 | 电商 | 2 件 | 商品主图、详情页设计 |
 | 生活 | 2 件 | 生活摄影作品 |
+| 剪辑 | 1 件 | 动效与界面演示剪辑 |
 
 ## 添加作品（重要！）
 
@@ -90,9 +91,9 @@ npm run scan
 1. `npm run scan -- --english`（扫描作品文件夹，英文输出）
 2. `npm run build`（构建生产版本）
 3. `git add` + `git commit`（有改动才提交）
-4. `git push`（推送到 GitHub，Cloudflare Pages 自动部署）
+4. `git push`（推送到 GitHub，GitHub Pages 自动部署）
 
-> 日常流程：把新作品文件放进 `public/portfolios/<分类>/` → 双击 `publish.cmd` → 等 1-2 分钟即可上线。
+> 日常流程：把新作品文件放进 `public/portfolios/<分类>/` → 双击 `publish.cmd` → 等 1-2 分钟在 GitHub Pages 上生效。
 
 ## 本地开发
 
@@ -118,14 +119,15 @@ npm run preview
 ```
 src/
 ├── main.jsx              # 入口
-├── App.jsx               # 主应用（组合组件）
+├── App.jsx               # 主应用（组合组件 + 全局状态）
 ├── data.js               # 作品数据（由 scan 脚本自动生成）
+├── asset.js              # 给资源路径补部署 base
 ├── style.css             # 全局样式
 ├── components/
 │   ├── Navbar.jsx        # 顶部导航栏
 │   ├── Hero.jsx          # 首屏 Hero
-│   ├── Works.jsx         # 作品展示区
-│   ├── WorkCard.jsx      # 作品卡片
+│   ├── Works.jsx         # 首页轮播 + 网格画廊（卡片定义也在此文件内）
+│   ├── LazyVideo.jsx     # 视频懒加载（进视口才挂载视频）
 │   ├── Lightbox.jsx      # 作品放大预览
 │   ├── About.jsx         # 关于我
 │   ├── Contact.jsx       # 联系我
@@ -143,11 +145,20 @@ scripts/
 
 ## 部署
 
-本项目使用 Cloudflare Pages 部署，push 到 `main` 分支后自动构建上线。
+站点有两个托管地址，**目前只有 GitHub Pages 会随 push 自动更新**：
+
+| 地址 | 通道 | 状态 |
+|------|------|------|
+| `https://huangwei-gem.github.io/wei_log/` | `.github/workflows/deploy.yml`，push main 自动构建 | ✅ 生效 |
+| `https://wei-log.pages.dev` | Cloudflare Pages（项目建在控制台侧，仓库内无配置） | ⚠️ push 不再触发构建，需自查控制台 |
 
 ```bash
 npm run build  # 本地验证构建输出到 dist/
 ```
+
+两个平台的部署路径不同（根路径 vs `/wei_log/` 子路径），所以 `data.js` 里的资源一律写成 `/portfolios/...`，由 `src/asset.js` 在运行期按 `import.meta.env.BASE_URL` 补前缀 —— 不要把这个前缀硬编码进 `data.js`。
+
+> ⚠️ **Cloudflare Pages 单文件上限 25 MiB。** 视频超过就直接部署失败，`npm run scan` 会显式报错提示，需先用 ffmpeg 重压。
 
 ## 许可证
 

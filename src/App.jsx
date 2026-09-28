@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import Navbar from './components/Navbar.jsx'
 import Hero from './components/Hero.jsx'
 import { projects } from './data.js'
@@ -72,9 +72,19 @@ export default function App() {
     }
   }, [])
 
-  const currentIndex = lightboxProject
-    ? projects.findIndex(p => p === lightboxProject)
-    : -1
+  const filteredProjects = useMemo(
+    () => (filter === 'all' ? projects : projects.filter(p => p.cat === filter)),
+    [filter]
+  )
+
+  // 轮播展示的是全部作品，从轮播打开时当前作品可能不在筛选结果内 —— 退回全量列表，
+  // 否则找不到下标，上下条按钮会失效
+  const lightboxList = useMemo(() => {
+    if (!lightboxProject) return []
+    return filteredProjects.includes(lightboxProject) ? filteredProjects : projects
+  }, [lightboxProject, filteredProjects])
+
+  const currentIndex = lightboxProject ? lightboxList.indexOf(lightboxProject) : -1
 
   const openLightbox = useCallback((project) => setLightboxProject(project), [])
   const closeLightbox = useCallback(() => setLightboxProject(null), [])
@@ -82,23 +92,23 @@ export default function App() {
   const goNext = useCallback(() => {
     setLightboxProject(prev => {
       if (!prev) return null
-      const idx = projects.findIndex(p => p === prev)
-      if (idx < projects.length - 1) return projects[idx + 1]
+      const idx = lightboxList.indexOf(prev)
+      if (idx >= 0 && idx < lightboxList.length - 1) return lightboxList[idx + 1]
       return prev
     })
-  }, [])
+  }, [lightboxList])
 
   const goPrev = useCallback(() => {
     setLightboxProject(prev => {
       if (!prev) return null
-      const idx = projects.findIndex(p => p === prev)
-      if (idx > 0) return projects[idx - 1]
+      const idx = lightboxList.indexOf(prev)
+      if (idx > 0) return lightboxList[idx - 1]
       return prev
     })
-  }, [])
+  }, [lightboxList])
 
-  const hasPrev = lightboxProject ? currentIndex > 0 : false
-  const hasNext = lightboxProject ? currentIndex < projects.length - 1 : false
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex >= 0 && currentIndex < lightboxList.length - 1
 
   useEffect(() => {
     const handleScroll = () => {

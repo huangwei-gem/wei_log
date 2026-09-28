@@ -106,11 +106,6 @@ body {
   overflow-x: clip;
 }
 
-/* 禁止页面滚动时的过渡闪烁 */
-body.style-scroll-lock {
-  overflow: hidden !important;
-}
-
 img {
   max-width: 100%;
   display: block;
@@ -1574,6 +1569,16 @@ section {
 .work-card-media {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+}
+
+/* 键盘焦点可见 — 全站原先没有任何 :focus 样式，Tab 到哪儿都看不出来 */
+.work-card:focus-visible,
+.marquee-card:focus-visible,
+.filter-btn:focus-visible,
+.lightbox-btn:focus-visible,
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 /* ==========================================

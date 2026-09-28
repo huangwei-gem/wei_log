@@ -38,7 +38,7 @@ if errorlevel 1 goto :error
 echo.
 echo ==============================================
 echo   DONE! Site is being deployed automatically.
-echo   Live at:  https://wei-log.pages.dev
+echo   Live at:  https://huangwei-gem.github.io/wei_log/
 echo ==============================================
 echo.
 pause
