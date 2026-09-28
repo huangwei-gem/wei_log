@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from 'react'
+import { asset } from '../asset.js'
 
 export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, hasNext }) {
   const [videoState, setVideoState] = useState('poster') // 'poster' | 'loading' | 'playing' | 'error'
@@ -54,7 +55,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
       const link = document.createElement('link')
       link.rel = 'preload'
       link.as = 'video'
-      link.href = project.video
+      link.href = asset(project.video)
       document.head.appendChild(link)
 
       return () => {
@@ -168,11 +169,11 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
               <video
                 ref={videoRef}
                 className={`lightbox-video ${videoState === 'poster' ? 'poster-mode' : ''}`}
-                src={project.video}
+                src={asset(project.video)}
                 controls={videoState !== 'poster'}
                 playsInline
                 preload="metadata"
-                poster={project.img}
+                poster={asset(project.img)}
                 style={videoState === 'playing' && videoSize ? {
                   width: '100%',
                   height: 'auto',
@@ -223,7 +224,7 @@ export default function Lightbox({ project, onClose, onPrev, onNext, hasPrev, ha
               )}
             </div>
           ) : (
-            <img className="lightbox-image" src={project.img} alt={project.title} />
+            <img className="lightbox-image" src={asset(project.img)} alt={project.title} />
           )}
         </div>
 

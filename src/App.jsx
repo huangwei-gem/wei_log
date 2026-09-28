@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import Navbar from './components/Navbar.jsx'
 import Hero from './components/Hero.jsx'
 import { projects } from './data.js'
+import { asset } from './asset.js'
 
 // 懒加载以下折叠的组件 — 减少首屏 bundle 大小
 const HeroMarquee = lazy(() => import('./components/Works.jsx').then(m => ({ default: m.HeroMarquee })))
@@ -54,7 +55,7 @@ export default function App() {
   // 预加载缩略图 — 首屏渲染后立即开始
   useEffect(() => {
     const preloadThumbnails = () => {
-      const thumbs = projects.slice(0, 8).map(p => p.thumb || p.img).filter(Boolean)
+      const thumbs = projects.slice(0, 8).map(p => asset(p.thumb || p.img)).filter(Boolean)
       thumbs.forEach(src => {
         const link = document.createElement('link')
         link.rel = 'preload'

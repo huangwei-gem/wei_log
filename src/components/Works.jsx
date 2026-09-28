@@ -1,4 +1,5 @@
 import { projects, filterCategories } from '../data.js'
+import { asset } from '../asset.js'
 import LazyVideo from './LazyVideo.jsx'
 import { useState, useEffect, useRef } from 'react'
 
@@ -13,7 +14,7 @@ function WorkCard({ project, onClick }) {
       <div className="work-card-inner">
         {isVideo ? (
           <>
-            <LazyVideo poster={project.img} videoSrc={project.video} className="work-card-media" />
+            <LazyVideo poster={asset(project.img)} videoSrc={asset(project.video)} className="work-card-media" />
             <span className="work-card-badge">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M8 5v14l11-7z" />
@@ -21,7 +22,7 @@ function WorkCard({ project, onClick }) {
             </span>
           </>
         ) : (
-          <img className="work-card-media" src={project.thumb || project.img} alt={project.title} loading="lazy" decoding="async" />
+          <img className="work-card-media" src={asset(project.thumb || project.img)} alt={project.title} loading="lazy" decoding="async" />
         )}
         <div className="work-card-gradient" />
         <div className="work-card-overlay">
@@ -140,8 +141,8 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
             <div className="marquee-card-inner">
               {p.type === 'video' ? (
                 <>
-                  <video muted loop playsInline preload="none" poster={p.img || undefined} className="marquee-card-media">
-                    <source src={p.video} type="video/mp4" />
+                  <video muted loop playsInline preload="none" poster={asset(p.img) || undefined} className="marquee-card-media">
+                    <source src={asset(p.video)} type="video/mp4" />
                   </video>
                   <span className="marquee-card-badge">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
@@ -150,7 +151,7 @@ function MarqueeRow({ projects, direction = 'left', speed = 32, onCardClick }) {
                   </span>
                 </>
               ) : (
-                <img className="marquee-card-media" src={p.thumb || p.img} alt={p.title} loading="lazy" decoding="async" fetchpriority={i < 6 ? 'high' : 'low'} />
+                <img className="marquee-card-media" src={asset(p.thumb || p.img)} alt={p.title} loading="lazy" decoding="async" fetchpriority={i < 6 ? 'high' : 'low'} />
               )}
               <div className="marquee-card-gradient" />
               <div className="marquee-card-overlay">
